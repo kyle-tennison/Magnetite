@@ -1,3 +1,8 @@
+mod datatypes;
+mod error;
+mod mesher;
+
 fn main() {
-    println!("Hello, world!");
+
+    mesher::parse_svg("pyrite.svg");
 }
