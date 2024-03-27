@@ -4,5 +4,7 @@ mod mesher;
 
 fn main() {
 
-    mesher::parse_svg("pyrite.svg");
+    for v in mesher::parse_csv("vertices.csv").expect("broken") {
+        println!("{:?}", v);
+    }
 }

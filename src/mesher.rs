@@ -15,7 +15,7 @@ pub fn parse_svg(svg_file: &str) -> Result<Vec<Vertex>, MagnetiteError> {
         Ok(file) => file,
         Err(_err) => {
             return Err(MagnetiteError::Input(format!(
-                "Unable to find svg file {}",
+                "Unable to open svg file {}",
                 svg_file
             )));
         }
@@ -55,4 +55,58 @@ pub fn parse_svg(svg_file: &str) -> Result<Vec<Vertex>, MagnetiteError> {
     println!("info: successfully loaded {} vertices from svg", points.len());
 
    Ok(points)
+}
+
+
+/// Parses a CSV file into a list of vertices
+/// 
+/// # Arguments
+/// 
+/// * `csv_file` - The path to the input csv file
+/// 
+/// # Returns
+/// 
+/// An ordered vector of Vertex objects
+pub fn parse_csv(csv_file: &str) -> Result<Vec<Vertex>, MagnetiteError> {
+
+    let contents = match std::fs::read_to_string(csv_file) {
+        Ok(c) => c,
+        Err(_err) => {return Err(MagnetiteError::Input(format!("Unable to open csv file {}", csv_file)))} 
+    };
+
+
+    let mut headers: Vec<&str> = Vec::new();
+    let mut x_index: usize = 0;
+    let mut y_index: usize = 0;
+    let mut vertices: Vec<Vertex> = Vec::new();
+
+    for line in contents.split("\n"){
+
+        if line.is_empty(){
+            continue
+        }
+        
+        if headers.len() == 0 {
+            headers = line.split(",").map(|x| x.trim()).collect();
+
+            if !headers.contains(&"x") || !headers.contains(&"y"){
+                return Err(MagnetiteError::Input("Error in csv file: Missing x and/or y field".to_string()));
+            }
+
+            x_index = headers.iter().position(|f| f==&"x").unwrap();
+            y_index = headers.iter().position(|f| f==&"y").unwrap();
+        }
+        else {
+
+            let line_contents: Vec<f64> = line.split(",").map(|x| x.trim().parse().expect("Non-float value in csv points")).collect();
+
+            let x = line_contents[x_index];
+            let y = line_contents[y_index];
+
+            vertices.push( Vertex{x, y});
+            
+        }
+    }
+    
+    Ok(vertices)
 }
