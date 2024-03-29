@@ -19,11 +19,9 @@ enum MeshParseState {
 /// Parses a .svg file into a list of Vertexes
 ///
 /// # Arguments
-///
 /// * `svg_file` - The path to the input svg file
 ///
 /// # Returns
-///
 /// An ordered vector of Vertex instances
 fn parse_svg(svg_file: &str) -> Result<Vec<Vertex>, MagnetiteError> {
     let contents = match std::fs::read_to_string(svg_file) {
@@ -89,11 +87,9 @@ fn parse_svg(svg_file: &str) -> Result<Vec<Vertex>, MagnetiteError> {
 /// Parses a CSV file into a list of vertices
 ///
 /// # Arguments
-///
 /// * `csv_file` - The path to the input csv file
 ///
 /// # Returns
-///
 /// An ordered vector of Vertex objects
 fn parse_csv(csv_file: &str) -> Result<Vec<Vertex>, MagnetiteError> {
     let contents = match std::fs::read_to_string(csv_file) {
@@ -146,7 +142,6 @@ fn parse_csv(csv_file: &str) -> Result<Vec<Vertex>, MagnetiteError> {
 /// Builds a .geo file with from a list of vertices
 ///
 /// # Arguments
-///
 /// * `vertices` - The vector of vertices to parse into a geometry
 /// * `output_file` - The output .geo file
 fn build_geo(
@@ -249,7 +244,10 @@ fn compute_mesh(
 ) -> Result<(), MagnetiteError> {
     let geo_filepath = "geom.geo";
 
-    println!("info: building .geo for Gmsh with CL={:.3} and CV={:.3}", characteristic_length, characteristic_length_variance);
+    println!(
+        "info: building .geo for Gmsh with CL={:.3} and CV={:.3}",
+        characteristic_length, characteristic_length_variance
+    );
     build_geo(
         vertices,
         geo_filepath,
@@ -278,6 +276,14 @@ fn compute_mesh(
     Ok(())
 }
 
+/// Parses a .msh file into Nodes and Elements
+///
+/// # Arguments
+/// * `mesh_file` - The path to the mesh file
+///
+/// # Returns
+/// A tuple with a vector of the parsed nodes and a vector of the parsed
+/// elements, in that order.
 fn parse_mesh(mesh_file: &str) -> Result<(Vec<Node>, Vec<Element>), MagnetiteError> {
     let mut elements: Vec<Element> = Vec::new();
 
@@ -442,6 +448,13 @@ fn parse_mesh(mesh_file: &str) -> Result<(Vec<Node>, Vec<Element>), MagnetiteErr
     Ok((nodes, elements))
 }
 
+/// Parses the input json into a JsonValue object
+///
+/// # Arguments
+/// * `input_file` - The path to the input file
+///
+/// # Returns
+/// A JsonValue object
 fn load_input_file(input_file: &str) -> Result<JsonValue, MagnetiteError> {
     let file_string = match std::fs::read_to_string(input_file) {
         Ok(f) => f,
@@ -491,6 +504,13 @@ fn load_input_file(input_file: &str) -> Result<JsonValue, MagnetiteError> {
     Ok(input_file_json)
 }
 
+/// Parses Model Metadata from the input_json
+///
+/// # Arguments
+/// * `input_json`: The input file as a JsonValue object
+///
+/// # Returns
+/// A ModelMetadata instance
 fn parse_input_metadata(input_json: &JsonValue) -> ModelMetadata {
     // todo!("Make this raise a magnetite error:");
     ModelMetadata {
@@ -512,6 +532,11 @@ fn parse_input_metadata(input_json: &JsonValue) -> ModelMetadata {
     }
 }
 
+/// Applies boundary conditions to a vector of nodes from the input json
+///
+/// # Arguments
+/// * `input_json` - The input file as a JsonValue object
+/// * `nodes` - A mutable reference to the vector of nodes
 fn apply_boundary_conditions(
     input_json: &JsonValue,
     nodes: &mut Vec<Node>,

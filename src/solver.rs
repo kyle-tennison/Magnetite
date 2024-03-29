@@ -1,5 +1,5 @@
 use crate::{
-    datatypes::{Element, Node},
+    datatypes::{Element, ModelMetadata, Node},
     error::MagnetiteError,
 };
 use indicatif::ProgressBar;
@@ -309,6 +309,13 @@ fn solve(
     Ok(())
 }
 
+/// Calculates the stress in an element
+///
+/// # Arguments
+/// * `elements` - A mutable reference to the vector of elements
+/// * `nodes` - A mutable reference to the vector of nodes
+/// * `poisson_ratio` - The model's poisson ratio
+/// * `youngs_modulus` - The model's material elasticity
 fn compute_stress(
     elements: &mut Vec<Element>,
     nodes: &mut Vec<Node>,
@@ -329,8 +336,7 @@ fn compute_stress(
 
         let displacement_mat: SMatrix<f64, { DOF * 3 }, 1> = SMatrix::from(nodal_displacements);
 
-        let stress = 
-            compute_stress_strain_matrix(poisson_ratio, youngs_modulus)
+        let stress = compute_stress_strain_matrix(poisson_ratio, youngs_modulus)
             * compute_strain_displacement_matrix(
                 element,
                 &nodes,
@@ -342,12 +348,16 @@ fn compute_stress(
     }
 }
 
+/// Runs the solver. Updates values on nodes and elements vectors
+///
+/// # Arguments
+/// * `elements` - A mutable reference to the vector of elements
+/// * `nodes` - A mutable reference to the vector of nodes
+/// * `model_metadata` - The model metadata
 pub fn run(
     nodes: &mut Vec<Node>,
     elements: &mut Vec<Element>,
-    youngs_modulus: f64,
-    part_thickness: f64,
-    poisson_ratio: f64,
+    model_metadata: &ModelMetadata,
 ) -> Result<(), MagnetiteError> {
     // Build element stiffness matrix for each element
     let mut element_stiffness_matrices: Vec<SMatrix<f64, 6, 6>> = Vec::new();
@@ -360,9 +370,9 @@ pub fn run(
         element_stiffness_matrices.push(compute_element_stiffness_matrix(
             &element,
             &nodes,
-            poisson_ratio,
-            youngs_modulus,
-            part_thickness,
+            model_metadata.poisson_ratio,
+            model_metadata.youngs_modulus,
+            model_metadata.part_thickness,
         ));
     }
     bar.finish_with_message(format!(
@@ -379,7 +389,12 @@ pub fn run(
     solve(nodes, &total_stiffness_matrix)?;
 
     // Solve for stress
-    compute_stress(elements, nodes, poisson_ratio, youngs_modulus);
+    compute_stress(
+        elements,
+        nodes,
+        model_metadata.poisson_ratio,
+        model_metadata.youngs_modulus,
+    );
 
     Ok(())
 }

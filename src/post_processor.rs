@@ -79,11 +79,26 @@ pub fn csv_output(
     Ok(())
 }
 
-pub fn pyplot(
-    nodes_csv: &str,
-    elements_csv: &str,
-    plotter_path: &str,
-) -> Result<(), MagnetiteError> {
+/// Calls the python plotter to plot results
+///
+/// # Arguments
+/// * `nodes_csv` - The filepath to the nodes csv output
+/// * `elements_csv` - The filepath to the elements csv output
+pub fn pyplot(nodes_csv: &str, elements_csv: &str) -> Result<(), MagnetiteError> {
+    // resolve plotter path
+    let current_dir = std::env::current_exe().unwrap();
+    let repo_dir = current_dir
+        .ancestors()
+        .into_iter()
+        .find(|p| p.ends_with("Magnetite"))
+        .expect("Unable to find root repo directory");
+    let plotter_path = repo_dir
+        .join("scripts/plot.py")
+        .canonicalize()
+        .expect("Unable to find plotter script")
+        .into_os_string()
+        .into_string()
+        .unwrap();
 
     println!("info: plotting in python...");
     let _ = std::process::Command::new("python")

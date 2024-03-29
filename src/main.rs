@@ -1,3 +1,16 @@
+/*
+
+--- Magnetite ---
+
+Magnetite is a 2D finite-element solver for linear-elastic mechanical
+problems.
+
+Kyle Tennison
+March 29, 2024
+
+*/
+
+use error::MagnetiteError;
 use std::env;
 mod datatypes;
 mod error;
@@ -6,7 +19,17 @@ mod post_processor;
 mod solver;
 
 fn main() {
+    match entry() {
+        Ok(_) => (),
+        Err(err) => {
+            eprintln!("Received error: {err}");
+            std::process::exit(1);
+        }
+    }
+}
 
+/// Entry point to simulator
+fn entry() -> Result<(), MagnetiteError> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() != 3 {
@@ -14,29 +37,21 @@ fn main() {
         std::process::exit(1)
     }
 
-    let (mut nodes, mut elements, model_metadata) = mesher::run(args[2].as_str(), args[1].as_str()).unwrap();
+    // Parse input files
+    let (mut nodes, mut elements, model_metadata) =
+        mesher::run(args[2].as_str(), args[1].as_str())?;
 
-    solver::run(&mut nodes, &mut elements, model_metadata.youngs_modulus, model_metadata.part_thickness, model_metadata.poisson_ratio).unwrap();
+    // Run simulation
+    solver::run(&mut nodes, &mut elements, &model_metadata)?;
 
-    let current_dir = std::env::current_exe().unwrap();
-    let repo_dir = current_dir
-        .ancestors()
-        .into_iter()
-        .find(|p| p.ends_with("Magnetite"))
-        .expect("Unable to find root repo directory");
-    let plotter_path = repo_dir
-        .join("scripts/plot.py")
-        .canonicalize()
-        .expect("Unable to find plotter script")
-        .into_os_string()
-        .into_string()
-        .unwrap();
-
+    // Output
     let nodes_output = "nodes.csv";
     let elements_output = "elements.csv";
-    post_processor::csv_output(&elements, &nodes, nodes_output, elements_output).unwrap();
-    post_processor::pyplot(nodes_output, elements_output, plotter_path.as_str()).unwrap();
+    post_processor::csv_output(&elements, &nodes, nodes_output, elements_output)?;
+    post_processor::pyplot(nodes_output, elements_output)?;
 
-    std::fs::remove_file(nodes_output).unwrap();
-    std::fs::remove_file(elements_output).unwrap();
+    std::fs::remove_file(nodes_output).expect("Unable to delete nodes output");
+    std::fs::remove_file(elements_output).expect("Unable to delete elements output");
+
+    Ok(())
 }
