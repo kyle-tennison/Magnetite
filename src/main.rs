@@ -1,5 +1,17 @@
-use datatypes::{Element, Node, Vertex};
+/*
 
+--- Magnetite ---
+
+Magnetite is a 2D finite-element solver for linear-elastic mechanical
+problems.
+
+Kyle Tennison
+March 29, 2024
+
+*/
+
+use error::MagnetiteError;
+use std::env;
 mod datatypes;
 mod error;
 mod mesher;
@@ -7,71 +19,39 @@ mod post_processor;
 mod solver;
 
 fn main() {
-    mesher::run("vertices.csv", 15.0, 5.0).unwrap();
+    match entry() {
+        Ok(_) => (),
+        Err(err) => {
+            eprintln!("Received error: {err}");
+            std::process::exit(1);
+        }
+    }
+}
 
-    let mut nodes = vec![
-        Node {
-            vertex: Vertex { x: 3.0, y: 0.0 },
-            ux: None,
-            uy: Some(0.0),
-            fx: Some(10.0),
-            fy: None,
-        },
-        Node {
-            vertex: Vertex { x: 3.0, y: 2.0 },
-            ux: None,
-            uy: None,
-            fx: Some(0.0),
-            fy: Some(-1000.0),
-        },
-        Node {
-            vertex: Vertex { x: 0.0, y: 2.0 },
-            ux: Some(0.0),
-            uy: Some(0.0),
-            fx: None,
-            fy: None,
-        },
-        Node {
-            vertex: Vertex { x: 0.0, y: 0.0 },
-            ux: Some(0.0),
-            uy: Some(10.0),
-            fx: None,
-            fy: None,
-        },
-    ];
+/// Entry point to simulator
+fn entry() -> Result<(), MagnetiteError> {
+    let args: Vec<String> = env::args().collect();
 
-    let mut elements = vec![
-        Element {
-            nodes: [0, 1, 3],
-            stress: None,
-        },
-        Element {
-            nodes: [2, 3, 1],
-            stress: None,
-        },
-    ];
+    if args.len() != 3 {
+        println!("usage: magnetite <input_json> <geometry>");
+        std::process::exit(1)
+    }
 
-    solver::run(&mut nodes, &mut elements, 30e6, 0.5, 0.25).unwrap();
+    // Parse input files
+    let (mut nodes, mut elements, model_metadata) =
+        mesher::run(args[2].as_str(), args[1].as_str())?;
 
-    let current_dir = std::env::current_dir().unwrap();
-    let repo_dir = current_dir
-        .ancestors()
-        .into_iter()
-        .find(|p| p.ends_with("Magnetite"))
-        .expect("Unable to find root repo directory");
-    let plotter_path = repo_dir
-        .join("scripts/plot.py")
-        .canonicalize()
-        .expect("Unable to find plotter script")
-        .into_os_string()
-        .into_string()
-        .unwrap();
+    // Run simulation
+    solver::run(&mut nodes, &mut elements, &model_metadata)?;
 
+    // Output
     let nodes_output = "nodes.csv";
     let elements_output = "elements.csv";
-    post_processor::csv_output(&elements, &nodes, nodes_output, elements_output).unwrap();
-    post_processor::pyplot(nodes_output, elements_output, plotter_path.as_str()).unwrap();
+    post_processor::csv_output(&elements, &nodes, nodes_output, elements_output)?;
+    post_processor::pyplot(nodes_output, elements_output)?;
 
-    std::fs::remove_file(nodes_output).unwrap();
-    std::fs::remove_file(elements_output).unwrap();
+    std::fs::remove_file(nodes_output).expect("Unable to delete nodes output");
+    std::fs::remove_file(elements_output).expect("Unable to delete elements output");
+
+    Ok(())
 }
