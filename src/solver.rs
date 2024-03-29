@@ -5,7 +5,7 @@ use crate::{
 use indicatif::ProgressBar;
 use nalgebra::{matrix, DMatrix, SMatrix};
 
-const DOF: usize = 2;
+pub const DOF: usize = 2;
 
 /// Calculates the area of the element
 ///
@@ -32,7 +32,7 @@ fn compute_element_area(element: &Element, nodes: &Vec<Node>) -> f64 {
 ///
 /// # Returns
 /// A 3x6 strain-displacement matrix
-fn compute_strain_displacement_matrix(
+pub fn compute_strain_displacement_matrix(
     element: &Element,
     nodes: &Vec<Node>,
     element_area: f64,
@@ -68,7 +68,7 @@ fn compute_strain_displacement_matrix(
 ///
 /// # Returns
 /// A 3x3 stress-strain matrix
-fn compute_stress_strain_matrix(poisson_ratio: f64, youngs_modulus: f64) -> SMatrix<f64, 3, 3> {
+pub fn compute_stress_strain_matrix(poisson_ratio: f64, youngs_modulus: f64) -> SMatrix<f64, 3, 3> {
     let mut strain_stress_mat: SMatrix<f64, 3, 3> = matrix![
         1.0, poisson_ratio, 0.0;
         poisson_ratio, 1.0, 0.0;
@@ -241,6 +241,8 @@ fn solve(
     nodes: &mut Vec<Node>,
     total_stiffness_matrix: &DMatrix<f64>,
 ) -> Result<(), MagnetiteError> {
+    println!("info: solving system...");
+
     // Assemble column Matrixes
     let (mut nodal_forces, mut nodal_displacements) = build_col_vecs(nodes);
 
@@ -261,9 +263,6 @@ fn solve(
         None => return Err(MagnetiteError::Solver(format!("No solution"))),
     };
 
-    println!("\nnodal forces:\n{:?}", nodal_forces);
-    println!("displacement solution:\n{}", displacement_solution);
-
     // Load displacement solution into nodal_displacement vector
     let mut solution_cursor = 0;
     for u in nodal_displacements.iter_mut() {
@@ -276,7 +275,6 @@ fn solve(
         .iter()
         .map(|u| u.expect("Unknown displacement after solve"))
         .collect();
-    println!("nodal displacements: {:?}", nodal_displacements);
 
     // Solve for forces
     for (i, f) in nodal_forces.iter_mut().enumerate() {
@@ -306,12 +304,46 @@ fn solve(
         node.fy = Some(nodal_forces[2 * i + 1]);
     }
 
+    println!("info: solve complete");
+
     Ok(())
+}
+
+fn compute_strain(
+    elements: &mut Vec<Element>,
+    nodes: &mut Vec<Node>,
+    poisson_ratio: f64,
+    youngs_modulus: f64,
+) {
+    for element in elements {
+        let element_nodes = Vec::from(element.nodes.map(|i| &nodes[i]));
+
+        let nodal_displacements: [f64; 6] = [
+            element_nodes[0].vertex.x,
+            element_nodes[0].vertex.y,
+            element_nodes[1].vertex.x,
+            element_nodes[1].vertex.y,
+            element_nodes[2].vertex.x,
+            element_nodes[2].vertex.y,
+        ];
+
+        let displacement_mat: SMatrix<f64, { DOF * 3 }, 1> = SMatrix::from(nodal_displacements);
+
+        let stress = compute_stress_strain_matrix(poisson_ratio, youngs_modulus)
+            * compute_strain_displacement_matrix(
+                element,
+                &nodes,
+                compute_element_area(element, &nodes),
+            )
+            * displacement_mat;
+
+        element.stress = Some(f64::sqrt(f64::powi(stress[0], 2) + f64::powi(stress[1], 2)));
+    }
 }
 
 pub fn run(
     nodes: &mut Vec<Node>,
-    elements: Vec<Element>,
+    elements: &mut Vec<Element>,
     youngs_modulus: f64,
     part_thickness: f64,
     poisson_ratio: f64,
@@ -344,6 +376,9 @@ pub fn run(
 
     // Solve system
     solve(nodes, &total_stiffness_matrix)?;
+
+    // Solve for strain
+    compute_strain(elements, nodes, poisson_ratio, youngs_modulus);
 
     Ok(())
 }

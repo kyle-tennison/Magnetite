@@ -16,4 +16,5 @@ pub struct Node {
 #[derive(Debug)]
 pub struct Element {
     pub nodes: [usize; 3],
+    pub stress: Option<f64>,
 }
