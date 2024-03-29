@@ -1,4 +1,7 @@
-use crate::{datatypes::{Element, Node}, error::MagnetiteError};
+use crate::{
+    datatypes::{Element, Node},
+    error::MagnetiteError,
+};
 use indicatif::ProgressBar;
 use nalgebra::{matrix, DMatrix, SMatrix};
 
@@ -156,12 +159,11 @@ fn build_total_stiffness_matrix(
     total_stiffness_matrix
 }
 
-
 /// Creates nodal forces and nodal displacement column vectors
-/// 
+///
 /// # Arguments
 /// * `nodes` - The list of nodes
-/// 
+///
 /// # Returns
 /// The nodal forces and nodal displacements column vectors, in that order
 fn build_col_vecs(nodes: &Vec<Node>) -> (Vec<Option<f64>>, Vec<Option<f64>>) {
@@ -181,12 +183,12 @@ fn build_col_vecs(nodes: &Vec<Node>) -> (Vec<Option<f64>>, Vec<Option<f64>>) {
 }
 
 /// Builds known and unknown matrices. These are used to solve the system
-/// 
+///
 /// # Arguments
 /// * `nodal_forces` - The nodal forces column vector
 /// * `nodal_displacements` - The nodal displacements column vector
 /// * `total_stiffness_matrix` - The total stiffness matrix of the model
-/// 
+///
 /// # Returns
 /// A tuple of the known matrix and the unknown matrix, in that order
 fn build_known_unknown_matrices(
@@ -229,22 +231,22 @@ fn build_known_unknown_matrices(
     (known_matrix, unknown_matrix)
 }
 
-
 /// Solves for the displacements in the nodes. Loads the results into the node
 /// objects
-/// 
+///
 /// # Arguments
 /// * `nodes` - The vector of nodes
 /// * `total_stiffness_matrix` - The total stiffness matrix of the model
-fn solve(nodes: &mut Vec<Node>, total_stiffness_matrix: &DMatrix<f64>) -> Result<(), MagnetiteError>{
-
+fn solve(
+    nodes: &mut Vec<Node>,
+    total_stiffness_matrix: &DMatrix<f64>,
+) -> Result<(), MagnetiteError> {
     // Assemble column Matrixes
     let (mut nodal_forces, mut nodal_displacements) = build_col_vecs(nodes);
 
     // Setup equation for unknown displacements
     let (known_matrix, unknown_matrix) =
         build_known_unknown_matrices(&nodal_forces, &nodal_displacements, total_stiffness_matrix);
-
 
     let mut known_matrix_summed = known_matrix.column_sum();
     let known_forces: Vec<&Option<f64>> = nodal_forces.iter().filter(|x| x.is_some()).collect();
@@ -256,14 +258,12 @@ fn solve(nodes: &mut Vec<Node>, total_stiffness_matrix: &DMatrix<f64>) -> Result
     // Solve for nodal displacements
     let displacement_solution = match unknown_matrix.lu().solve(&known_matrix_summed) {
         Some(sol) => sol,
-        None => {
-            return Err(MagnetiteError::Solver(format!("No solution")))
-        }
+        None => return Err(MagnetiteError::Solver(format!("No solution"))),
     };
 
     println!("\nnodal forces:\n{:?}", nodal_forces);
     println!("displacement solution:\n{}", displacement_solution);
-    
+
     // Load displacement solution into nodal_displacement vector
     let mut solution_cursor = 0;
     for u in nodal_displacements.iter_mut() {
@@ -272,15 +272,16 @@ fn solve(nodes: &mut Vec<Node>, total_stiffness_matrix: &DMatrix<f64>) -> Result
             solution_cursor += 1;
         }
     }
-    let nodal_displacements: Vec<f64> = nodal_displacements.iter().map(|u| u.expect("Unknown displacement after solve")).collect();
+    let nodal_displacements: Vec<f64> = nodal_displacements
+        .iter()
+        .map(|u| u.expect("Unknown displacement after solve"))
+        .collect();
     println!("nodal displacements: {:?}", nodal_displacements);
-
 
     // Solve for forces
     for (i, f) in nodal_forces.iter_mut().enumerate() {
-
         if f.is_some() {
-            continue
+            continue;
         }
 
         let mut solved_force: f64 = 0.0;
@@ -291,21 +292,21 @@ fn solve(nodes: &mut Vec<Node>, total_stiffness_matrix: &DMatrix<f64>) -> Result
 
         *f = Some(solved_force);
     }
-    let nodal_forces: Vec<f64> = nodal_forces.iter().map(|f| f.expect("Unknown force after solve")).collect();
+    let nodal_forces: Vec<f64> = nodal_forces
+        .iter()
+        .map(|f| f.expect("Unknown force after solve"))
+        .collect();
 
     // Load results into nodes
     for (i, node) in nodes.iter_mut().enumerate() {
+        node.ux = Some(nodal_displacements[2 * i]);
+        node.uy = Some(nodal_displacements[2 * i + 1]);
 
-        node.ux = Some(nodal_displacements[2*i]);
-        node.uy = Some(nodal_displacements[2*i + 1]);
-
-        node.fx = Some(nodal_forces[2*i]);
-        node.fy = Some(nodal_forces[2*i + 1]);
+        node.fx = Some(nodal_forces[2 * i]);
+        node.fy = Some(nodal_forces[2 * i + 1]);
     }
 
-
-    Ok(())    
-
+    Ok(())
 }
 
 pub fn run(
@@ -314,7 +315,7 @@ pub fn run(
     youngs_modulus: f64,
     part_thickness: f64,
     poisson_ratio: f64,
-) -> Result<(), MagnetiteError>{
+) -> Result<(), MagnetiteError> {
     // Build element stiffness matrix for each element
     let mut element_stiffness_matrices: Vec<SMatrix<f64, 6, 6>> = Vec::new();
 
