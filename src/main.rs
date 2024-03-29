@@ -7,9 +7,8 @@ mod post_processor;
 mod solver;
 
 fn main() {
-    let (mut nodes, mut elements) = mesher::run("vertices.csv", 15.0, 5.0).unwrap();
+    let (mut nodes, mut elements) = mesher::run("vertices.csv", "input.json").unwrap();
 
-    return;
     solver::run(&mut nodes, &mut elements, 30e6, 0.5, 0.25).unwrap();
 
     let current_dir = std::env::current_dir().unwrap();
@@ -31,6 +30,6 @@ fn main() {
     post_processor::csv_output(&elements, &nodes, nodes_output, elements_output).unwrap();
     post_processor::pyplot(nodes_output, elements_output, plotter_path.as_str()).unwrap();
 
-    std::fs::remove_file(nodes_output).unwrap();
-    std::fs::remove_file(elements_output).unwrap();
+    // std::fs::remove_file(nodes_output).unwrap();
+    // std::fs::remove_file(elements_output).unwrap();
 }
