@@ -3,8 +3,8 @@
     "part_thickness": 0.5,
     "material_elasticity": 69e9,
     "poisson_ratio": 0.33,
-    "characteristic_length": 10,
-    "characteristic_length_variance": 5
+    "characteristic_length": 0.5,
+    "characteristic_length_variance": 0.05
   },
   "boundary_conditions": {
     "restraint": {

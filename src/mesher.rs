@@ -249,6 +249,7 @@ fn compute_mesh(
 ) -> Result<(), MagnetiteError> {
     let geo_filepath = "geom.geo";
 
+    println!("info: building .geo for Gmsh with CL={:.3} and CV={:.3}", characteristic_length, characteristic_length_variance);
     build_geo(
         vertices,
         geo_filepath,
@@ -436,7 +437,7 @@ fn parse_mesh(mesh_file: &str) -> Result<(Vec<Node>, Vec<Element>), MagnetiteErr
         elements.len()
     );
 
-    std::fs::remove_file(mesh_file).expect("Failed to delete mesh file");
+    std::fs::remove_file(mesh_file).expect("Failed to delete .msh file");
 
     Ok((nodes, elements))
 }
@@ -577,10 +578,6 @@ fn apply_boundary_conditions(
         &rules.len()
     );
 
-    for rule in &rules {
-        println!("\n\nrule: {:?}", rule);
-    }
-
     for node in nodes {
         for rule in &rules {
             let candidate = node.vertex.x > rule.region.x_min
@@ -610,7 +607,7 @@ fn apply_boundary_conditions(
 pub fn run(
     geometry_file: &str,
     input_file: &str,
-) -> Result<(Vec<Node>, Vec<Element>), MagnetiteError> {
+) -> Result<(Vec<Node>, Vec<Element>, ModelMetadata), MagnetiteError> {
     let input_file_json = load_input_file(input_file)?;
     let model_metadata = parse_input_metadata(&input_file_json);
 
@@ -638,5 +635,5 @@ pub fn run(
 
     apply_boundary_conditions(&input_file_json, &mut nodes)?;
 
-    Ok((nodes, elements))
+    Ok((nodes, elements, model_metadata))
 }

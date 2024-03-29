@@ -14,9 +14,9 @@ fn main() {
         std::process::exit(1)
     }
 
-    let (mut nodes, mut elements) = mesher::run(args[2].as_str(), args[1].as_str()).unwrap();
+    let (mut nodes, mut elements, model_metadata) = mesher::run(args[2].as_str(), args[1].as_str()).unwrap();
 
-    solver::run(&mut nodes, &mut elements, 30e6, 0.5, 0.25).unwrap();
+    solver::run(&mut nodes, &mut elements, model_metadata.youngs_modulus, model_metadata.part_thickness, model_metadata.poisson_ratio).unwrap();
 
     let current_dir = std::env::current_exe().unwrap();
     let repo_dir = current_dir

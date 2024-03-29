@@ -135,7 +135,7 @@ def main():
 
         relative_stress = (element.stress - min_stress) / (max_stress-min_stress)
 
-        color = "#0000{}".format(hex(int(255 * relative_stress))[2:] )
+        color = "#{:02x}0000".format(int(255 * relative_stress))
         triangle_colormap.append(color)
 
     for i, triangle in enumerate(triangles):

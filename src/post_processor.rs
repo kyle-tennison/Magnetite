@@ -84,6 +84,8 @@ pub fn pyplot(
     elements_csv: &str,
     plotter_path: &str,
 ) -> Result<(), MagnetiteError> {
+
+    println!("info: plotting in python...");
     let _ = std::process::Command::new("python")
         .arg(plotter_path)
         .arg(nodes_csv)

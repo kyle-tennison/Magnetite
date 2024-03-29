@@ -309,7 +309,7 @@ fn solve(
     Ok(())
 }
 
-fn compute_strain(
+fn compute_stress(
     elements: &mut Vec<Element>,
     nodes: &mut Vec<Node>,
     poisson_ratio: f64,
@@ -319,17 +319,18 @@ fn compute_strain(
         let element_nodes = Vec::from(element.nodes.map(|i| &nodes[i]));
 
         let nodal_displacements: [f64; 6] = [
-            element_nodes[0].vertex.x,
-            element_nodes[0].vertex.y,
-            element_nodes[1].vertex.x,
-            element_nodes[1].vertex.y,
-            element_nodes[2].vertex.x,
-            element_nodes[2].vertex.y,
+            element_nodes[0].ux.unwrap(),
+            element_nodes[0].uy.unwrap(),
+            element_nodes[1].ux.unwrap(),
+            element_nodes[1].uy.unwrap(),
+            element_nodes[2].ux.unwrap(),
+            element_nodes[2].uy.unwrap(),
         ];
 
         let displacement_mat: SMatrix<f64, { DOF * 3 }, 1> = SMatrix::from(nodal_displacements);
 
-        let stress = compute_stress_strain_matrix(poisson_ratio, youngs_modulus)
+        let stress = 
+            compute_stress_strain_matrix(poisson_ratio, youngs_modulus)
             * compute_strain_displacement_matrix(
                 element,
                 &nodes,
@@ -377,8 +378,8 @@ pub fn run(
     // Solve system
     solve(nodes, &total_stiffness_matrix)?;
 
-    // Solve for strain
-    compute_strain(elements, nodes, poisson_ratio, youngs_modulus);
+    // Solve for stress
+    compute_stress(elements, nodes, poisson_ratio, youngs_modulus);
 
     Ok(())
 }
