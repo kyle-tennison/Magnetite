@@ -7,50 +7,9 @@ mod post_processor;
 mod solver;
 
 fn main() {
-    mesher::run("vertices.csv", 15.0, 5.0).unwrap();
+    let (mut nodes, mut elements) = mesher::run("vertices.csv", 15.0, 5.0).unwrap();
 
-    let mut nodes = vec![
-        Node {
-            vertex: Vertex { x: 3.0, y: 0.0 },
-            ux: None,
-            uy: Some(0.0),
-            fx: Some(10.0),
-            fy: None,
-        },
-        Node {
-            vertex: Vertex { x: 3.0, y: 2.0 },
-            ux: None,
-            uy: None,
-            fx: Some(0.0),
-            fy: Some(-1000.0),
-        },
-        Node {
-            vertex: Vertex { x: 0.0, y: 2.0 },
-            ux: Some(0.0),
-            uy: Some(0.0),
-            fx: None,
-            fy: None,
-        },
-        Node {
-            vertex: Vertex { x: 0.0, y: 0.0 },
-            ux: Some(0.0),
-            uy: Some(10.0),
-            fx: None,
-            fy: None,
-        },
-    ];
-
-    let mut elements = vec![
-        Element {
-            nodes: [0, 1, 3],
-            stress: None,
-        },
-        Element {
-            nodes: [2, 3, 1],
-            stress: None,
-        },
-    ];
-
+    return;
     solver::run(&mut nodes, &mut elements, 30e6, 0.5, 0.25).unwrap();
 
     let current_dir = std::env::current_dir().unwrap();

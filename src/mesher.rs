@@ -1,6 +1,16 @@
-use std::io::Write;
+use std::io::{Read, Write};
 
-use crate::{datatypes::Vertex, error::MagnetiteError};
+use crate::{
+    datatypes::{Element, Node, Vertex},
+    error::MagnetiteError,
+};
+
+enum MeshParseState {
+    Nodes,
+    Elements,
+    Entities,
+    Limbo,
+}
 
 /// Parses a .svg file into a list of Vertexes
 ///
@@ -263,6 +273,170 @@ fn compute_mesh(
     Ok(())
 }
 
+fn parse_mesh(mesh_file: &str) -> Result<(Vec<Node>, Vec<Element>), MagnetiteError> {
+    let mut elements: Vec<Element> = Vec::new();
+
+    let mut mesh_fs = match std::fs::File::open(mesh_file) {
+        Ok(f) => f,
+        Err(err) => {
+            return Err(MagnetiteError::Mesher(format!(
+                "Unable to open auto-generated mesh file: {err}"
+            )))
+        }
+    };
+
+    let mut mesh_contents: String = String::new();
+    mesh_fs
+        .read_to_string(&mut mesh_contents)
+        .expect("Failed to read mesh contents into String");
+
+    let mut parser_state = MeshParseState::Limbo;
+    let mut parsed_section_metadata = false;
+    let mut lines = mesh_contents.split("\n");
+
+    let mut nodes_unordered: Vec<Node> = Vec::new();
+    let mut node_indexes: Vec<usize> = Vec::new();
+
+    while let Some(line) = lines.next() {
+        if line.is_empty() {
+            continue;
+        }
+
+        if line.starts_with("$End") {
+            parser_state = MeshParseState::Limbo;
+        }
+
+        match parser_state {
+            MeshParseState::Limbo => {
+                parsed_section_metadata = false;
+
+                if line.starts_with("$Entities") {
+                    parser_state = MeshParseState::Entities;
+                } else if line.starts_with("$Node") {
+                    parser_state = MeshParseState::Nodes;
+                } else if line.starts_with("$Elements") {
+                    parser_state = MeshParseState::Elements;
+                }
+                continue;
+            }
+            MeshParseState::Nodes => {
+                if !parsed_section_metadata {
+                    parsed_section_metadata = true;
+                    continue;
+                }
+
+                let node_data: Vec<usize> = line
+                    .split(" ")
+                    .map(|i| i.parse().expect("Unexpected non-int in mesh data"))
+                    .collect();
+
+                let num_nodes_local = node_data[3];
+
+                let mut node_tags: Vec<usize> = Vec::with_capacity(num_nodes_local);
+
+                for _ in 0..num_nodes_local {
+                    let tag: usize = lines
+                        .next()
+                        .unwrap()
+                        .parse()
+                        .expect("found non-int node tag");
+                    node_tags.push(tag);
+                }
+
+                for i in 0..num_nodes_local {
+                    let node_coords: Vec<f64> = lines
+                        .next()
+                        .unwrap()
+                        .split(" ")
+                        .map(|c| c.parse().expect("Non-float coordinate in mesh"))
+                        .collect();
+
+                    let node = Node {
+                        vertex: Vertex {
+                            x: node_coords[0],
+                            y: node_coords[1],
+                        },
+                        ux: None,
+                        uy: None,
+                        fx: Some(0.0),
+                        fy: Some(0.0),
+                    };
+
+                    nodes_unordered.push(node);
+                    node_indexes.push(node_tags[i] - 1);
+                }
+            }
+            MeshParseState::Elements => {
+                if !parsed_section_metadata {
+                    parsed_section_metadata = true;
+                    continue;
+                }
+
+                let element_data: Vec<usize> = line
+                    .split(" ")
+                    .map(|i| {
+                        i.parse()
+                            .expect(format!("Unexpected non-int in mesh data {}", i).as_str())
+                    })
+                    .collect();
+
+                let entity_dim = element_data[0];
+                let num_elements = element_data[3];
+
+                for _ in 0..num_elements {
+                    let metadata: Vec<usize> = lines
+                        .next()
+                        .unwrap()
+                        .trim()
+                        .split(" ")
+                        .map(|i| {
+                            i.parse()
+                                .expect(format!("Unexpected non-int in mesh data {}", i).as_str())
+                        })
+                        .collect();
+
+                    if entity_dim != 2 {
+                        continue;
+                    }
+
+                    let n0 = metadata[1];
+                    let n1 = metadata[2];
+                    let n2 = metadata[3];
+
+                    elements.push(Element {
+                        nodes: [n0, n1, n2],
+                        stress: None,
+                    })
+                }
+            }
+            MeshParseState::Entities => continue,
+        }
+    }
+
+    // Order nodes
+    let mut nodes: Vec<Node> =
+        Vec::with_capacity(std::mem::size_of::<Node>() * nodes_unordered.len());
+
+    // we will be over writing all of these null values
+    unsafe {
+        nodes.set_len(nodes_unordered.len());
+    }
+
+    for (idx, node) in std::iter::zip(node_indexes, nodes_unordered) {
+        nodes[idx] = node;
+    }
+
+    println!(
+        "info: loaded {} nodes and {} elements",
+        nodes.len(),
+        elements.len()
+    );
+
+    std::fs::remove_file(mesh_file).expect("Failed to delete mesh file");
+
+    Ok((nodes, elements))
+}
+
 /// Runs the mesher
 ///
 /// # Arguments
@@ -273,7 +447,7 @@ pub fn run(
     input_file: &str,
     characteristic_length: f32,
     characteristic_length_variance: f32,
-) -> Result<(), MagnetiteError> {
+) -> Result<(Vec<Node>, Vec<Element>), MagnetiteError> {
     let vertices: Vec<Vertex>;
 
     if input_file.ends_with(".svg") {
@@ -294,5 +468,5 @@ pub fn run(
         characteristic_length_variance,
     )?;
 
-    Ok(())
+    parse_mesh(mesh_filepath)
 }
