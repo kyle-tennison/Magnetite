@@ -52,8 +52,8 @@ fn entry() -> Result<(), MagnetiteError> {
     post_processor::csv_output(&elements, &nodes, nodes_output, elements_output)?;
     post_processor::pyplot(nodes_output, elements_output)?;
 
-    std::fs::remove_file(nodes_output).expect("Unable to delete nodes output");
-    std::fs::remove_file(elements_output).expect("Unable to delete elements output");
+    // std::fs::remove_file(nodes_output).expect("Unable to delete nodes output");
+    // std::fs::remove_file(elements_output).expect("Unable to delete elements output");
 
     Ok(())
 }
