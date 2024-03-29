@@ -7,10 +7,10 @@ pub struct Vertex {
 #[derive(Debug)]
 pub struct Node {
     pub vertex: Vertex,
-    pub ux: f64,
-    pub uy: f64,
-    pub fx: f64,
-    pub fy: f64,
+    pub ux: Option<f64>,
+    pub uy: Option<f64>,
+    pub fx: Option<f64>,
+    pub fy: Option<f64>,
 }
 
 #[derive(Debug)]

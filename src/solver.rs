@@ -1,5 +1,8 @@
 use crate::datatypes::{Element, Node};
-use nalgebra::{matrix, SMatrix};
+use indicatif::ProgressBar;
+use nalgebra::{matrix, DMatrix, SMatrix};
+
+const DOF: usize = 2;
 
 /// Calculates the area of the element
 ///
@@ -49,7 +52,7 @@ fn compute_strain_displacement_matrix(
         gamma_1, beta_1, gamma_2, beta_2, gamma_3, beta_3;
     ];
 
-    strain_displacement_mat *= element_area;
+    strain_displacement_mat /= 2.0 * element_area;
 
     strain_displacement_mat
 }
@@ -102,6 +105,8 @@ pub fn compute_element_stiffness_matrix(
         * part_thickness
 }
 
+///
+
 pub fn run(
     nodes: Vec<Node>,
     elements: Vec<Element>,
@@ -109,16 +114,62 @@ pub fn run(
     part_thickness: f64,
     poisson_ratio: f64,
 ) {
-    for element in elements {
-        println!(
-            "{}",
-            compute_element_stiffness_matrix(
-                &element,
-                &nodes,
-                poisson_ratio,
-                youngs_modulus,
-                part_thickness
-            )
-        )
+    // Build element stiffness matrix for each element
+    let mut element_stiffness_matrices: Vec<SMatrix<f64, 6, 6>> = Vec::new();
+
+    println!("info: building element stiffness matrices...");
+    let bar = ProgressBar::new(elements.len() as u64);
+    for (i, element) in elements.iter().enumerate() {
+        bar.inc(i as u64);
+
+        element_stiffness_matrices.push(compute_element_stiffness_matrix(
+            &element,
+            &nodes,
+            poisson_ratio,
+            youngs_modulus,
+            part_thickness,
+        ));
     }
+    bar.finish_with_message(format!(
+        "info: successfully built {} stiffness matrices\n",
+        elements.len()
+    ));
+
+    // Compile matrices into total stiffness matrix
+    println!("info: building total stiffness matrix...");
+
+    let mut total_stiffness_matrix: DMatrix<f64> =
+        DMatrix::zeros(DOF * nodes.len(), DOF * nodes.len());
+
+    let bar = ProgressBar::new(elements.len() as u64);
+    for (i, (stiffness_mat, element)) in
+        std::iter::zip(element_stiffness_matrices, elements).enumerate()
+    {
+        bar.inc(i as u64);
+
+        for (local_row, node_row) in element.nodes.iter().enumerate() {
+            for (local_col, node_col) in element.nodes.iter().enumerate() {
+                let global_row = node_row * 2;
+                let global_col = node_col * 2;
+                let local_row = local_row * 2;
+                let local_col = local_col * 2;
+
+                // Add RowX ColX
+                total_stiffness_matrix[(global_row, global_col)] +=
+                    stiffness_mat[(local_row, local_col)];
+                // Add RowX ColY
+                total_stiffness_matrix[(global_row, global_col + 1)] +=
+                    stiffness_mat[(local_row, local_col + 1)];
+                // Add RowY ColX
+                total_stiffness_matrix[(global_row + 1, global_col)] +=
+                    stiffness_mat[(local_row + 1, local_col)];
+                // Add RowY ColY
+                total_stiffness_matrix[(global_row + 1, global_col + 1)] +=
+                    stiffness_mat[(local_row + 1, local_col + 1)];
+            }
+        }
+    }
+    bar.finish_with_message(format!("info: successfully build total stiffness matrix\n"));
+
+    println!("{}", total_stiffness_matrix)
 }

@@ -22,29 +22,36 @@ fn main() {
 
     let nodes = vec![
         Node {
+            vertex: Vertex { x: 3.0, y: 0.0 },
+            ux: None,
+            uy: Some(0.0),
+            fx: Some(0.0),
+            fy: None,
+        },
+        Node {
+            vertex: Vertex { x: 3.0, y: 2.0 },
+            ux: None,
+            uy: None,
+            fx: Some(0.0),
+            fy: Some(-1000.0),
+        },
+        Node {
+            vertex: Vertex { x: 0.0, y: 2.0 },
+            ux: Some(0.0),
+            uy: Some(0.0),
+            fx: None,
+            fy: None,
+        },
+        Node {
             vertex: Vertex { x: 0.0, y: 0.0 },
-            ux: 0.0,
-            uy: 0.0,
-            fx: 0.0,
-            fy: 0.0,
-        },
-        Node {
-            vertex: Vertex { x: 5.0, y: 0.0 },
-            ux: 0.0,
-            uy: 0.0,
-            fx: 0.0,
-            fy: 0.0,
-        },
-        Node {
-            vertex: Vertex { x: 5.0, y: 5.0 },
-            ux: 0.0,
-            uy: 0.0,
-            fx: 0.0,
-            fy: 0.0,
+            ux: Some(0.0),
+            uy: Some(0.0),
+            fx: None,
+            fy: None,
         },
     ];
 
-    let elements = vec![Element { nodes: [0, 1, 2] }];
+    let elements = vec![Element { nodes: [0, 1, 3] }, Element { nodes: [2, 3, 1] }];
 
-    solver::run(nodes, elements, 69e9, 1.0, 0.25)
+    solver::run(nodes, elements, 30e6, 0.5, 0.25)
 }
