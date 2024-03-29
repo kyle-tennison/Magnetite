@@ -145,70 +145,144 @@ fn parse_csv(csv_file: &str) -> Result<Vec<Vertex>, MagnetiteError> {
 /// * `vertices` - The vector of vertices to parse into a geometry
 /// * `output_file` - The output .geo file
 fn build_geo(
-    vertices: &Vec<Vertex>,
+    vertices_containers: &Vec<Vec<Vertex>>,
     output_file: &str,
     characteristic_length: f32,
     characteristic_length_variance: f32,
 ) -> Result<(), MagnetiteError> {
     let mut geo_file = std::fs::File::create(output_file).expect("Failed to create .geo file");
 
-    // Define points
-    geo_file.write("// Define points\n".as_bytes()).unwrap();
-    for (i, vertex) in vertices.iter().enumerate() {
+    // Define outer points
+    geo_file
+        .write("// Define outer points\n".as_bytes())
+        .unwrap();
+    for (i, vertex) in vertices_containers[0].iter().enumerate() {
         geo_file
             .write(format!("Point({}) = {{ {}, {}, 0, 1.0 }};\n", i, vertex.x, vertex.y).as_bytes())
             .unwrap();
     }
 
-    // Connect points
-    geo_file.write("\n//Connect points\n".as_bytes()).unwrap();
-    for i in 1..vertices.len() {
-        geo_file
-            .write(format!("Line({}) = {{ {}, {} }};\n", i - 1, i - 1, i).as_bytes())
-            .unwrap();
-    }
+    // Define inner points
     geo_file
-        .write(
-            format!(
-                "Line({}) = {{ {}, {} }};\n",
-                vertices.len() - 1,
-                vertices.len() - 1,
-                0
-            )
-            .as_bytes(),
-        )
+        .write("\n// Define inner points\n".as_bytes())
         .unwrap();
 
-    // Define outermost loop
-    geo_file
-        .write("\n//Register outer loop\n".as_bytes())
-        .unwrap();
-    geo_file.write("Line Loop(1) = {".as_bytes()).unwrap();
-    for i in 0..vertices.len() {
+    let mut offset_counter: usize = vertices_containers[0].len();
+    let mut inner_offsets: Vec<usize> =
+        Vec::with_capacity(std::mem::size_of::<usize>() * (vertices_containers.len() - 1));
+
+    inner_offsets.push(0);
+
+    for vertices in vertices_containers[1..].iter() {
+        inner_offsets.push(offset_counter);
+
+        for (i, vertex) in vertices.iter().enumerate() {
+            geo_file
+                .write(
+                    format!(
+                        "Point({}) = {{ {}, {}, 0, 1.0 }};\n",
+                        i + offset_counter,
+                        vertex.x,
+                        vertex.y
+                    )
+                    .as_bytes(),
+                )
+                .unwrap();
+        }
+
+        offset_counter += vertices.len();
+    }
+
+    // Connect points
+    geo_file.write("\n// Connect points\n".as_bytes()).unwrap();
+
+    for (i, vertices) in vertices_containers.iter().enumerate() {
+        geo_file
+            .write(format!("\n// Point connections for surface {i}\n").as_bytes())
+            .unwrap();
+
+        let point_offset = inner_offsets[i];
+
+        for i in 1..vertices.len() {
+            geo_file
+                .write(
+                    format!(
+                        "Line({}) = {{ {}, {} }};\n",
+                        i + point_offset - 1,
+                        i + point_offset - 1,
+                        i + point_offset
+                    )
+                    .as_bytes(),
+                )
+                .unwrap();
+        }
+        geo_file
+            .write(
+                format!(
+                    "Line({}) = {{ {}, {} }};\n",
+                    vertices.len() + point_offset - 1,
+                    vertices.len() + point_offset - 1,
+                    point_offset
+                )
+                .as_bytes(),
+            )
+            .unwrap();
+    }
+
+    // Define loops
+    geo_file.write("\n//Register loops\n".as_bytes()).unwrap();
+
+    for (i, vertices) in vertices_containers.iter().enumerate() {
+        let point_offset = inner_offsets[i];
+
+        geo_file
+            .write(format!("Line Loop({}) = {{", i + 1).as_bytes())
+            .unwrap();
+        for i in 0..vertices.len() {
+            geo_file
+                .write(
+                    format!(
+                        "{} {}",
+                        ({
+                            if i != 0 {
+                                ","
+                            } else {
+                                ""
+                            }
+                        }),
+                        i + point_offset
+                    )
+                    .as_bytes(),
+                )
+                .unwrap();
+        }
+        geo_file.write(" };\n".as_bytes()).unwrap();
+    }
+
+    geo_file.write("\n//Define surface\n".as_bytes()).unwrap();
+
+    geo_file.write("Plane Surface(1) = {".as_bytes()).unwrap();
+    for i in (0..vertices_containers.len()).rev() {
         geo_file
             .write(
                 format!(
                     "{} {}",
                     ({
-                        if i != 0 {
+                        if i != vertices_containers.len() - 1 {
                             ","
                         } else {
                             ""
                         }
                     }),
-                    i
+                    i + 1
                 )
                 .as_bytes(),
             )
             .unwrap();
     }
     geo_file.write(" };\n".as_bytes()).unwrap();
-    geo_file
-        .write("Plane Surface(1) = {1};\n".as_bytes())
-        .unwrap();
 
     // Define meshing settings
-
     geo_file
         .write(
             format!(
@@ -237,7 +311,7 @@ fn build_geo(
 /// * `characteristic_length` - Characteristic length of the mesh
 /// * `characteristic_length_variance` - Characteristic length variance of the mesh
 fn compute_mesh(
-    vertices: &Vec<Vertex>,
+    vertices: &Vec<Vec<Vertex>>,
     output: &str,
     characteristic_length: f32,
     characteristic_length_variance: f32,
@@ -630,22 +704,24 @@ fn apply_boundary_conditions(
 /// * `characteristic_length` - Characteristic length of the mesh
 /// * `characteristic_length_variance` - Characteristic length variance of the mesh
 pub fn run(
-    geometry_file: &str,
+    geometry_files: Vec<&str>,
     input_file: &str,
 ) -> Result<(Vec<Node>, Vec<Element>, ModelMetadata), MagnetiteError> {
     let input_file_json = load_input_file(input_file)?;
     let model_metadata = parse_input_metadata(&input_file_json);
 
-    let vertices: Vec<Vertex>;
+    let mut vertices: Vec<Vec<Vertex>> = Vec::new();
 
-    if geometry_file.ends_with(".svg") {
-        vertices = parse_svg(geometry_file)?;
-    } else if geometry_file.ends_with(".csv") {
-        vertices = parse_csv(geometry_file)?;
-    } else {
-        return Err(MagnetiteError::Input(
-            format!("Unrecognized geometry filetype {geometry_file}").to_string(),
-        ));
+    for geom in geometry_files {
+        if geom.ends_with(".svg") {
+            vertices.push(parse_svg(geom)?);
+        } else if geom.ends_with(".csv") {
+            vertices.push(parse_csv(geom)?);
+        } else {
+            return Err(MagnetiteError::Input(
+                format!("Unrecognized geometry filetype {geom}").to_string(),
+            ));
+        }
     }
 
     let mesh_filepath = "geom.msh";

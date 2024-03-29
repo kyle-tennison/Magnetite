@@ -32,14 +32,16 @@ fn main() {
 fn entry() -> Result<(), MagnetiteError> {
     let args: Vec<String> = env::args().collect();
 
-    if args.len() != 3 {
-        println!("usage: magnetite <input_json> <geometry>");
+    if args.len() < 3 {
+        println!("usage: magnetite <input_json> <geometry_outer> <geometry_inner ...>");
         std::process::exit(1)
     }
 
     // Parse input files
-    let (mut nodes, mut elements, model_metadata) =
-        mesher::run(args[2].as_str(), args[1].as_str())?;
+    let (mut nodes, mut elements, model_metadata) = mesher::run(
+        args[2..].iter().map(|f| f.as_str()).collect(),
+        args[1].as_str(),
+    )?;
 
     // Run simulation
     solver::run(&mut nodes, &mut elements, &model_metadata)?;

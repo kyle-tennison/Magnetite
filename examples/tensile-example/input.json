@@ -26,9 +26,9 @@
       },
       "targets": {
         "ux": null,
-        "uy": 0,
-        "fx": -6e8,
-        "fy": null
+        "uy": null,
+        "fx": 3e8,
+        "fy": 0
       }
     }
   }
