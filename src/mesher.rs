@@ -220,19 +220,27 @@ fn build_geo(
     Ok(())
 }
 
-
 /// Runs Gmsh to create a mesh from a list of vertices
-/// 
+///
 /// # Arguments
 /// * `vertices` - A vector of vertex objects
 /// * `output` - The output filepath of the .msh file
 /// * `characteristic_length` - Characteristic length of the mesh
 /// * `characteristic_length_variance` - Characteristic length variance of the mesh
-fn compute_mesh(vertices: &Vec<Vertex>, output: &str, characteristic_length: f32, characteristic_length_variance: f32) -> Result<(), MagnetiteError>{
-
+fn compute_mesh(
+    vertices: &Vec<Vertex>,
+    output: &str,
+    characteristic_length: f32,
+    characteristic_length_variance: f32,
+) -> Result<(), MagnetiteError> {
     let geo_filepath = "geom.geo";
 
-    build_geo(vertices, geo_filepath, characteristic_length, characteristic_length_variance)?;
+    build_geo(
+        vertices,
+        geo_filepath,
+        characteristic_length,
+        characteristic_length_variance,
+    )?;
 
     println!("info: running gmsh...");
     let _output = match std::process::Command::new("gmsh")
@@ -240,45 +248,51 @@ fn compute_mesh(vertices: &Vec<Vertex>, output: &str, characteristic_length: f32
         .arg("-2")
         .arg("-o")
         .arg(output)
-        .output() {
-            Ok(out) => out,
-            Err(err) => {
-                return Err(MagnetiteError::Mesher(format!("Gmsh failed: {err}").to_string()));
-            }
-        };
+        .output()
+    {
+        Ok(out) => out,
+        Err(err) => {
+            return Err(MagnetiteError::Mesher(
+                format!("Gmsh failed: {err}").to_string(),
+            ));
+        }
+    };
 
     std::fs::remove_file(geo_filepath).expect("Failed to delete .geo file");
 
     Ok(())
-
 }
 
-
 /// Runs the mesher
-/// 
+///
 /// # Arguments
 /// * `input_file` - The geometry input file--either csv or svg
 /// * `characteristic_length` - Characteristic length of the mesh
 /// * `characteristic_length_variance` - Characteristic length variance of the mesh
-pub fn run(input_file: &str, characteristic_length: f32, characteristic_length_variance: f32) -> Result<(), MagnetiteError> {
-
+pub fn run(
+    input_file: &str,
+    characteristic_length: f32,
+    characteristic_length_variance: f32,
+) -> Result<(), MagnetiteError> {
     let vertices: Vec<Vertex>;
 
     if input_file.ends_with(".svg") {
         vertices = parse_svg(input_file)?;
-    }
-    else if input_file.ends_with(".csv") {
+    } else if input_file.ends_with(".csv") {
         vertices = parse_csv(input_file)?;
-    }
-    else {
-        return Err(MagnetiteError::Input(format!("Unrecognized geometry filetype {input_file}").to_string()))
+    } else {
+        return Err(MagnetiteError::Input(
+            format!("Unrecognized geometry filetype {input_file}").to_string(),
+        ));
     }
 
     let mesh_filepath = "geom.msh";
-    compute_mesh(&vertices, mesh_filepath, characteristic_length, characteristic_length_variance)?;
-
+    compute_mesh(
+        &vertices,
+        mesh_filepath,
+        characteristic_length,
+        characteristic_length_variance,
+    )?;
 
     Ok(())
-
-
 }
