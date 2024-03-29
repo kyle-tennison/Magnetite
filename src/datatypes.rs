@@ -28,9 +28,8 @@ pub struct ModelMetadata {
     pub characteristic_length_variance: f32,
 }
 
-
 #[derive(Debug)]
-pub struct BoundaryRegion{
+pub struct BoundaryRegion {
     pub x_min: f64,
     pub x_max: f64,
     pub y_min: f64,
@@ -38,7 +37,7 @@ pub struct BoundaryRegion{
 }
 
 #[derive(Debug)]
-pub struct BoundaryTarget{
+pub struct BoundaryTarget {
     pub ux: Option<f64>,
     pub uy: Option<f64>,
     pub fx: Option<f64>,
@@ -49,7 +48,5 @@ pub struct BoundaryTarget{
 pub struct BoundaryRule {
     pub name: String,
     pub region: BoundaryRegion,
-    pub target: BoundaryTarget
+    pub target: BoundaryTarget,
 }
-
-

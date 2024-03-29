@@ -3,7 +3,9 @@ use std::io::{Read, Write};
 use json::JsonValue;
 
 use crate::{
-    datatypes::{BoundaryRegion, BoundaryRule, BoundaryTarget, Element, ModelMetadata, Node, Vertex},
+    datatypes::{
+        BoundaryRegion, BoundaryRule, BoundaryTarget, Element, ModelMetadata, Node, Vertex,
+    },
     error::MagnetiteError,
 };
 
@@ -440,7 +442,6 @@ fn parse_mesh(mesh_file: &str) -> Result<(Vec<Node>, Vec<Element>), MagnetiteErr
 }
 
 fn load_input_file(input_file: &str) -> Result<JsonValue, MagnetiteError> {
-
     let file_string = match std::fs::read_to_string(input_file) {
         Ok(f) => f,
         Err(_err) => {
@@ -490,74 +491,102 @@ fn load_input_file(input_file: &str) -> Result<JsonValue, MagnetiteError> {
 }
 
 fn parse_input_metadata(input_json: &JsonValue) -> ModelMetadata {
-
     // todo!("Make this raise a magnetite error:");
     ModelMetadata {
-        youngs_modulus: input_json["metadata"]["material_elasticity"].as_f64().expect("error in material_elasticity field"),
-        part_thickness: input_json["metadata"]["part_thickness"].as_f64().expect("error in part_thickness field"),
-        poisson_ratio: input_json["metadata"]["poisson_ratio"].as_f64().expect("error in poisson_ratio field"),
-        characteristic_length: input_json["metadata"]["characteristic_length"].as_f32().expect("error in characteristic_length field"),
-        characteristic_length_variance: input_json["metadata"]["characteristic_length_variance"].as_f32().expect("error in characteristic_length_variance field"),
+        youngs_modulus: input_json["metadata"]["material_elasticity"]
+            .as_f64()
+            .expect("error in material_elasticity field"),
+        part_thickness: input_json["metadata"]["part_thickness"]
+            .as_f64()
+            .expect("error in part_thickness field"),
+        poisson_ratio: input_json["metadata"]["poisson_ratio"]
+            .as_f64()
+            .expect("error in poisson_ratio field"),
+        characteristic_length: input_json["metadata"]["characteristic_length"]
+            .as_f32()
+            .expect("error in characteristic_length field"),
+        characteristic_length_variance: input_json["metadata"]["characteristic_length_variance"]
+            .as_f32()
+            .expect("error in characteristic_length_variance field"),
     }
 }
 
-
-fn apply_boundary_conditions(input_json: &JsonValue, nodes: &mut Vec<Node>) -> Result<(), MagnetiteError>{
-
-
+fn apply_boundary_conditions(
+    input_json: &JsonValue,
+    nodes: &mut Vec<Node>,
+) -> Result<(), MagnetiteError> {
     let mut rules: Vec<BoundaryRule> = Vec::new();
 
     // Load rules from json
     for (name, rule_json) in input_json["boundary_conditions"].entries() {
-
-        if !rule_json.has_key("region"){
-            return Err(MagnetiteError::Input(format!("Boundary rule {name} is missing region field")));
+        if !rule_json.has_key("region") {
+            return Err(MagnetiteError::Input(format!(
+                "Boundary rule {name} is missing region field"
+            )));
         }
-        if !rule_json.has_key("targets"){
-            return Err(MagnetiteError::Input(format!("Boundary rule {name} is missing target field")));
+        if !rule_json.has_key("targets") {
+            return Err(MagnetiteError::Input(format!(
+                "Boundary rule {name} is missing target field"
+            )));
         }
 
         // Register region
-        let mut boundary_region = BoundaryRegion{ x_min: f64::MIN, x_max: f64::MAX, y_min: f64::MIN, y_max: f64::MAX };
-        if rule_json["region"].has_key("x_target_min"){
-            boundary_region.x_min = rule_json["region"]["x_target_min"].as_f64().expect(format!("Bad value for x_target_min in {name}").as_str())
+        let mut boundary_region = BoundaryRegion {
+            x_min: f64::MIN,
+            x_max: f64::MAX,
+            y_min: f64::MIN,
+            y_max: f64::MAX,
+        };
+        if rule_json["region"].has_key("x_target_min") {
+            boundary_region.x_min = rule_json["region"]["x_target_min"]
+                .as_f64()
+                .expect(format!("Bad value for x_target_min in {name}").as_str())
         }
-        if rule_json["region"].has_key("x_target_max"){
-            boundary_region.x_max = rule_json["region"]["x_target_max"].as_f64().expect(format!("Bad value for x_target_max in {name}").as_str())
+        if rule_json["region"].has_key("x_target_max") {
+            boundary_region.x_max = rule_json["region"]["x_target_max"]
+                .as_f64()
+                .expect(format!("Bad value for x_target_max in {name}").as_str())
         }
-        if rule_json["region"].has_key("y_target_min"){
-            boundary_region.x_min = rule_json["region"]["y_target_min"].as_f64().expect(format!("Bad value for y_target_min in {name}").as_str())
+        if rule_json["region"].has_key("y_target_min") {
+            boundary_region.x_min = rule_json["region"]["y_target_min"]
+                .as_f64()
+                .expect(format!("Bad value for y_target_min in {name}").as_str())
         }
-        if rule_json["region"].has_key("y_target_max"){
-            boundary_region.x_max = rule_json["region"]["y_target_max"].as_f64().expect(format!("Bad value for y_target_max in {name}").as_str())
+        if rule_json["region"].has_key("y_target_max") {
+            boundary_region.x_max = rule_json["region"]["y_target_max"]
+                .as_f64()
+                .expect(format!("Bad value for y_target_max in {name}").as_str())
         }
 
         // Register target
-        let boundary_target = BoundaryTarget{
+        let boundary_target = BoundaryTarget {
             ux: rule_json["targets"]["ux"].as_f64(),
             uy: rule_json["targets"]["uy"].as_f64(),
             fx: rule_json["targets"]["fx"].as_f64(),
             fy: rule_json["targets"]["fy"].as_f64(),
         };
 
-        rules.push(BoundaryRule{name: name.to_string(), region: boundary_region, target: boundary_target})
+        rules.push(BoundaryRule {
+            name: name.to_string(),
+            region: boundary_region,
+            target: boundary_target,
+        })
     }
-    println!("info: loaded {} boundary rules from input file", &rules.len());
+    println!(
+        "info: loaded {} boundary rules from input file",
+        &rules.len()
+    );
 
     for rule in &rules {
         println!("\n\nrule: {:?}", rule);
     }
 
-
-    for node in nodes{
+    for node in nodes {
         for rule in &rules {
-
-            let candidate = 
-                node.vertex.x > rule.region.x_min &&
-                node.vertex.x < rule.region.x_max &&
-                node.vertex.y > rule.region.y_min &&
-                node.vertex.y < rule.region.y_max
-            ;
+            let candidate = node.vertex.x > rule.region.x_min
+                && node.vertex.x < rule.region.x_max
+                && node.vertex.y > rule.region.y_min
+                && node.vertex.y < rule.region.y_max;
 
             if candidate {
                 node.ux = rule.target.ux;
@@ -565,13 +594,10 @@ fn apply_boundary_conditions(input_json: &JsonValue, nodes: &mut Vec<Node>) -> R
                 node.fx = rule.target.fx;
                 node.fy = rule.target.fy;
             }
-
         }
     }
 
     Ok(())
-
-
 }
 
 /// Runs the mesher
