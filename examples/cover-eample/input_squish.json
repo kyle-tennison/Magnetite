@@ -3,14 +3,14 @@
     "part_thickness": 0.5,
     "material_elasticity": 69e9,
     "poisson_ratio": 0.33,
-    "characteristic_length_min": 0,
-    "characteristic_length_max": 0.9
+    "characteristic_length_min": 3,
+    "characteristic_length_max": 10
   },
   "boundary_conditions": {
     "restraint": {
       "region": {
-        "x_target_min": -12,
-        "x_target_max": -10
+        "y_target_min": -68,
+        "y_target_max": -55
       },
       "targets": {
         "ux": 0,
@@ -21,14 +21,14 @@
     },
     "load": {
       "region": {
-        "x_target_min": 10,
-        "x_target_max": 12
+        "y_target_min": -11,
+        "y_target_max": 0
       },
       "targets": {
         "ux": null,
         "uy": null,
-        "fx": -6e8,
-        "fy": 0
+        "fx": 5e7,
+        "fy": -5e7
       }
     }
   }

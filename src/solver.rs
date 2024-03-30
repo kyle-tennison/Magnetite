@@ -3,7 +3,7 @@ use crate::{
     error::MagnetiteError,
 };
 use indicatif::ProgressBar;
-use nalgebra::{matrix, DMatrix, SMatrix};
+use nalgebra::{matrix, DMatrix, DVector, SMatrix};
 
 pub const DOF: usize = 2;
 
@@ -241,7 +241,7 @@ fn solve(
     nodes: &mut Vec<Node>,
     total_stiffness_matrix: &DMatrix<f64>,
 ) -> Result<(), MagnetiteError> {
-    println!("info: solving system...");
+    println!("info: setting up system...");
 
     // Assemble column Matrixes
     let (mut nodal_forces, mut nodal_displacements) = build_col_vecs(nodes);
@@ -250,7 +250,7 @@ fn solve(
     let (known_matrix, unknown_matrix) =
         build_known_unknown_matrices(&nodal_forces, &nodal_displacements, total_stiffness_matrix);
 
-    let mut known_matrix_summed = known_matrix.column_sum();
+    let mut known_matrix_summed: DVector<f64> = known_matrix.column_sum();
     let known_forces: Vec<&Option<f64>> = nodal_forces.iter().filter(|x| x.is_some()).collect();
 
     for (i, k) in known_matrix_summed.iter_mut().enumerate() {
@@ -258,10 +258,14 @@ fn solve(
     }
 
     // Solve for nodal displacements
+    println!("info: solving system...");
+    let start = std::time::Instant::now();
     let displacement_solution = match unknown_matrix.lu().solve(&known_matrix_summed) {
         Some(sol) => sol,
         None => return Err(MagnetiteError::Solver(format!("No solution"))),
     };
+    let elapsed = (std::time::Instant::now() - start).as_secs_f32();
+    println!("info: solved system in {:.3} seconds", elapsed);
 
     // Load displacement solution into nodal_displacement vector
     let mut solution_cursor = 0;
