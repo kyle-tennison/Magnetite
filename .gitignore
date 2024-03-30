@@ -4,3 +4,6 @@ Cargo.lock
 output.csv
 geom.msh
 *.DS_store
+nodes.csv
+elements.csv 
+*.geo
