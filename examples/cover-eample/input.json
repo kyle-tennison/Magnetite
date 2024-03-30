@@ -9,8 +9,8 @@
   "boundary_conditions": {
     "restraint": {
       "region": {
-        "y_target_min": -61,
-        "y_target_max": -55
+        "x_target_min": 0,
+        "x_target_max": 12
       },
       "targets": {
         "ux": 0,
@@ -21,14 +21,14 @@
     },
     "load": {
       "region": {
-        "y_target_min": -5,
-        "y_target_max": 0
+        "x_target_min": 405,
+        "x_target_max": 420
       },
       "targets": {
-        "ux": 0,
-        "uy": null,
-        "fx": null,
-        "fy": 6e8
+        "ux": null,
+        "uy": 0,
+        "fx": 3e6,
+        "fy": null
       }
     }
   }
