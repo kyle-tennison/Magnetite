@@ -23,7 +23,7 @@ enum MeshParseState {
 ///
 /// # Returns
 /// An ordered vector of Vertex instances
-fn parse_svg(svg_file: &str) -> Result<Vec<Vec<Vertex>>, MagnetiteError> {
+fn parse_svg(svg_file: &str, min_element_length: f32) -> Result<Vec<Vec<Vertex>>, MagnetiteError> {
     let contents = match std::fs::read_to_string(svg_file) {
         Ok(file) => file,
         Err(_err) => {
@@ -49,14 +49,11 @@ fn parse_svg(svg_file: &str) -> Result<Vec<Vec<Vertex>>, MagnetiteError> {
     }
 
     let mut vertex_containers: Vec<Vec<Vertex>> = Vec::new();
-
-    println!("plolylines: {}", polylines.len());
+    let mut skipped_vertices: usize = 0;
 
     vertex_containers.push(Vec::new()); // placeholder for outer
-
     for polyline in polylines {
-        println!("new polyline: {:?}", polyline.tag_name());
-
+        
         // Read points from points attribute
         let points_raw = match polyline.attribute("points") {
             Some(p) => p,
@@ -84,13 +81,19 @@ fn parse_svg(svg_file: &str) -> Result<Vec<Vec<Vertex>>, MagnetiteError> {
 
             // ensure that vertex is not already in points
             if points.contains(&vertex){
-                println!("warning: duplicate point at {:?} in polyline id {:?}", &vertex, polyline.id());
+                println!("warning [mesh]: duplicate point at {:?} in polyline id {:?}", &vertex, polyline.id());
             }
             else{
                 points.push(Vertex { x, y });
             }
 
-
+            // ensure vertex is proper distance away from last point
+            if let Some(last_vertex) = points.last(){
+                let distance = f64::sqrt( f64::powi(last_vertex.x - vertex.x, 2) + f64::powi(last_vertex.y - vertex.y, 2)  );
+                if distance < min_element_length.into() {
+                    skipped_vertices += 1;
+                }
+            }
             i += 2;
         }
 
@@ -116,16 +119,12 @@ fn parse_svg(svg_file: &str) -> Result<Vec<Vec<Vertex>>, MagnetiteError> {
         }
     }
 
-    if vertex_containers[0].is_empty() {
-        return Err(MagnetiteError::Input("No OUTER geometry".to_owned()));
+    if skipped_vertices > 0 {
+        println!("warning [mesh]: skipped {} vertices", skipped_vertices);
     }
 
-    println!("parsed svg");
-
-    for vertices in &vertex_containers {
-        for v in vertices {
-            println!("{:?}", v)
-        }
+    if vertex_containers[0].is_empty() {
+        return Err(MagnetiteError::Input("No OUTER geometry".to_owned()));
     }
 
     Ok(vertex_containers)
@@ -770,7 +769,7 @@ pub fn run(
 
     for geom in geometry_files {
         if geom.ends_with(".svg") {
-            vertices = parse_svg(geom)?;
+            vertices = parse_svg(geom, model_metadata.characteristic_length_min)?;
             break;
         } else if geom.ends_with(".csv") {
             vertices.push(parse_csv(geom)?);
