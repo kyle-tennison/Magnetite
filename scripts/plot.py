@@ -133,7 +133,10 @@ def main():
         triangles[i, 2] = (n2.x + n2.ux, n2.y + n2.uy)
 
 
-        relative_stress = (element.stress - min_stress) / (max_stress-min_stress)
+        if max_stress == min_stress:
+            relative_stress = 0
+        else:
+            relative_stress = (element.stress - min_stress) / (max_stress-min_stress)
 
         color = "#{:02x}0000".format(int(255 * relative_stress))
         triangle_colormap.append(color)

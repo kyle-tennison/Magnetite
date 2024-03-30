@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Vertex {
     pub x: f64,
     pub y: f64,
@@ -24,8 +24,8 @@ pub struct ModelMetadata {
     pub youngs_modulus: f64,
     pub poisson_ratio: f64,
     pub part_thickness: f64,
-    pub characteristic_length: f32,
-    pub characteristic_length_variance: f32,
+    pub characteristic_length_min: f32,
+    pub characteristic_length_max: f32,
 }
 
 #[derive(Debug)]

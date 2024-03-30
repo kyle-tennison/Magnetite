@@ -3,3 +3,4 @@ Cargo.lock
 .vscode/settings.json
 output.csv
 geom.msh
+*.DS_store

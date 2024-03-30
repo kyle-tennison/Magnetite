@@ -23,7 +23,7 @@ enum MeshParseState {
 ///
 /// # Returns
 /// An ordered vector of Vertex instances
-fn parse_svg(svg_file: &str) -> Result<Vec<Vertex>, MagnetiteError> {
+fn parse_svg(svg_file: &str, min_element_length: f32) -> Result<Vec<Vec<Vertex>>, MagnetiteError> {
     let contents = match std::fs::read_to_string(svg_file) {
         Ok(file) => file,
         Err(_err) => {
@@ -34,54 +34,160 @@ fn parse_svg(svg_file: &str) -> Result<Vec<Vertex>, MagnetiteError> {
         }
     };
 
-    let doc = roxmltree::Document::parse(&contents).unwrap();
+    let mut skipped_vertices: usize = 0; // count number of skips
 
-    let polyline = match doc
+    // Parse polylines and polygons from svg xml
+    let doc = roxmltree::Document::parse(&contents).unwrap();
+    let polylines: Vec<roxmltree::Node> = doc
         .descendants()
-        .find(|n| n.tag_name().name() == "polyline")
-    {
-        Some(p) => p,
-        None => {
+        .into_iter()
+        .filter(|n| n.tag_name().name() == "polyline" || n.tag_name().name() == "polygon")
+        .collect();
+
+    let mut vertex_containers: Vec<Vec<Vertex>> = Vec::new();
+    vertex_containers.push(Vec::new()); // placeholder for outer
+
+    for polyline in polylines {
+
+        // Read points from points attribute
+        let points_raw = match polyline.attribute("points") {
+            Some(p) => p,
+            None => {
+                return Err(MagnetiteError::Input(
+                    format!("Error in svg file. No points in polyline element {:?}", polyline.id()),
+                ))
+            }
+        }
+        .split(" ");
+
+        // Parse points into vertices
+        let mut points: Vec<Vertex> = Vec::new();
+        let mut points_nopair: Vec<f64> = Vec::new();
+        for point_str in points_raw {
+            let point: f64 = point_str.parse().expect("Non-float value in svg points");
+            points_nopair.push(point);
+        }
+        let mut i: usize = 0;
+        while i < points_nopair.len() {
+            let x = points_nopair[i];
+            let y = -points_nopair[i + 1]; // invert y
+            i += 2;
+
+            let vertex = Vertex{ x, y };
+
+            // ensure that vertex is not already in points
+            if points.contains(&vertex){
+                println!("warning [mesh]: duplicate point at {:?} in polyline id {:?}", &vertex, polyline.id());
+                continue;
+            }
+            // ensure vertex is proper distance away from last point
+            if let Some(last_vertex) = points.last(){
+                let distance = f64::sqrt( f64::powi(last_vertex.x - vertex.x, 2) + f64::powi(last_vertex.y - vertex.y, 2)  );
+                if distance < min_element_length.into() {
+                    skipped_vertices += 1;
+                    continue;
+                }
+            }
+
+            points.push(Vertex { x, y });
+        }
+
+        // Save points to corresponding field
+        if let Some(id) = polyline.attribute("id") {
+            if id.trim().starts_with("INNER") {
+                vertex_containers.push(points)
+            } else if id.trim().starts_with("OUTER") {
+                if vertex_containers[0].is_empty() {
+                    vertex_containers[0] = points
+                } else {
+                    return Err(MagnetiteError::Input(
+                        "Multiple OUTER geometries in SVG".to_owned(),
+                    ));
+                }
+            } else {
+                println!("warning: skipping polyline geometer with id {id}. Only supports OUTER and INNER")
+            }
+        } else {
             return Err(MagnetiteError::Input(
-                "Error in svg file. No polyline element.".to_string(),
+                "Error in svg file. Missing id filed on polyline".to_owned(),
             ));
         }
-    };
+    }
 
-    let points_raw = match polyline.attribute("points") {
-        Some(p) => p,
-        None => {
+    // Parse rectangles from svg xml
+    let doc = roxmltree::Document::parse(&contents).unwrap();
+    let rectangles: Vec<roxmltree::Node> = doc
+        .descendants()
+        .into_iter()
+        .filter(|n| n.tag_name().name() == "rect")
+        .collect();
+
+
+    for rect in rectangles {
+
+        let x: f64= match rect.attribute("x") {
+            Some(x) => x,
+            None => {
+                return Err(MagnetiteError::Input("Error in svg file. No x definition in rectangle".to_owned()));
+            }
+        }.parse().expect("Non-float value in svg points");
+        let y: f64 = match rect.attribute("y") {
+            Some(y) => y,
+            None => {
+                return Err(MagnetiteError::Input("Error in svg file. No y definition in rectangle".to_owned()));
+            }
+        }.parse().expect("Non-float value in svg points");
+        let width: f64 = match rect.attribute("width") {
+            Some(width) => width,
+            None => {
+                return Err(MagnetiteError::Input("Error in svg file. No width definition in rectangle".to_owned()));
+            }
+        }.parse().expect("Non-float value in svg points");
+        let height: f64 = match rect.attribute("height") {
+            Some(height) => height,
+            None => {
+                return Err(MagnetiteError::Input("Error in svg file. No height definition in rectangle".to_owned()));
+            }
+        }.parse().expect("Non-float value in svg points");
+
+        let vertices = vec![
+            Vertex {x: x, y: -y},
+            Vertex {x: x+width, y: -y},
+            Vertex {x: x+width, y: -y-height},
+            Vertex {x, y: y-height},
+        ];
+
+        // Save points to corresponding field
+        if let Some(id) = rect.attribute("id") {
+            if id.trim().starts_with("INNER") {
+                vertex_containers.push(vertices)
+            } else if id.trim().starts_with("OUTER") {
+                if vertex_containers[0].is_empty() {
+                    vertex_containers[0] = vertices
+                } else {
+                    return Err(MagnetiteError::Input(
+                        "Multiple OUTER geometries in SVG".to_owned(),
+                    ));
+                }
+            } else {
+                println!("warning: skipping polyline geometer with id {id}. Only supports OUTER and INNER")
+            }
+        } else {
             return Err(MagnetiteError::Input(
-                "Error in svg file. No points in polyline element.".to_string(),
-            ))
+                "Error in svg file. Missing id filed on polyline".to_owned(),
+            ));
         }
     }
-    .split(" ");
 
-    let mut points_nopair: Vec<f64> = Vec::new();
-
-    for point_str in points_raw {
-        let point: f64 = point_str.parse().expect("Non-float value in svg points");
-        points_nopair.push(point);
+    if skipped_vertices > 0 {
+        println!("warning [mesh]: skipped {} vertices", skipped_vertices);
     }
 
-    let mut points: Vec<Vertex> = Vec::new();
-    let mut i: usize = 0;
-    while i < points_nopair.len() {
-        let x = points_nopair[i];
-        let y = points_nopair[i + 1];
-
-        points.push(Vertex { x, y });
-
-        i += 2;
+    if vertex_containers[0].is_empty() {
+        return Err(MagnetiteError::Input("No OUTER geometry".to_owned()));
     }
 
-    println!(
-        "info: successfully loaded {} vertices from svg",
-        points.len()
-    );
-
-    Ok(points)
+    Ok(vertex_containers)
 }
 
 /// Parses a CSV file into a list of vertices
@@ -145,82 +251,165 @@ fn parse_csv(csv_file: &str) -> Result<Vec<Vertex>, MagnetiteError> {
 /// * `vertices` - The vector of vertices to parse into a geometry
 /// * `output_file` - The output .geo file
 fn build_geo(
-    vertices: &Vec<Vertex>,
+    vertices_containers: &Vec<Vec<Vertex>>,
     output_file: &str,
-    characteristic_length: f32,
-    characteristic_length_variance: f32,
+    characteristic_length_min: f32,
+    characteristic_length_max: f32,
 ) -> Result<(), MagnetiteError> {
     let mut geo_file = std::fs::File::create(output_file).expect("Failed to create .geo file");
 
-    // Define points
-    geo_file.write("// Define points\n".as_bytes()).unwrap();
-    for (i, vertex) in vertices.iter().enumerate() {
+    // Define outer points
+    geo_file
+        .write("// Define outer points\n".as_bytes())
+        .unwrap();
+    for (i, vertex) in vertices_containers[0].iter().enumerate() {
         geo_file
             .write(format!("Point({}) = {{ {}, {}, 0, 1.0 }};\n", i, vertex.x, vertex.y).as_bytes())
             .unwrap();
     }
 
-    // Connect points
-    geo_file.write("\n//Connect points\n".as_bytes()).unwrap();
-    for i in 1..vertices.len() {
-        geo_file
-            .write(format!("Line({}) = {{ {}, {} }};\n", i - 1, i - 1, i).as_bytes())
-            .unwrap();
-    }
+    // Define inner points
     geo_file
-        .write(
-            format!(
-                "Line({}) = {{ {}, {} }};\n",
-                vertices.len() - 1,
-                vertices.len() - 1,
-                0
-            )
-            .as_bytes(),
-        )
+        .write("\n// Define inner points\n".as_bytes())
         .unwrap();
 
-    // Define outermost loop
-    geo_file
-        .write("\n//Register outer loop\n".as_bytes())
-        .unwrap();
-    geo_file.write("Line Loop(1) = {".as_bytes()).unwrap();
-    for i in 0..vertices.len() {
+    let mut offset_counter: usize = vertices_containers[0].len();
+    let mut inner_offsets: Vec<usize> =
+        Vec::with_capacity(std::mem::size_of::<usize>() * (vertices_containers.len() - 1));
+
+    inner_offsets.push(0);
+
+    for vertices in vertices_containers[1..].iter() {
+        inner_offsets.push(offset_counter);
+
+        for (i, vertex) in vertices.iter().enumerate() {
+            geo_file
+                .write(
+                    format!(
+                        "Point({}) = {{ {}, {}, 0, 1.0 }};\n",
+                        i + offset_counter,
+                        vertex.x,
+                        vertex.y
+                    )
+                    .as_bytes(),
+                )
+                .unwrap();
+        }
+
+        offset_counter += vertices.len();
+    }
+
+    // Connect points
+    geo_file.write("\n// Connect points\n".as_bytes()).unwrap();
+
+    for (i, vertices) in vertices_containers.iter().enumerate() {
+        geo_file
+            .write(format!("\n// Point connections for surface {i}\n").as_bytes())
+            .unwrap();
+
+        let point_offset = inner_offsets[i];
+
+        for i in 1..vertices.len() {
+            geo_file
+                .write(
+                    format!(
+                        "Line({}) = {{ {}, {} }};\n",
+                        i + point_offset - 1,
+                        i + point_offset - 1,
+                        i + point_offset
+                    )
+                    .as_bytes(),
+                )
+                .unwrap();
+        }
+        geo_file
+            .write(
+                format!(
+                    "Line({}) = {{ {}, {} }};\n",
+                    vertices.len() + point_offset - 1,
+                    vertices.len() + point_offset - 1,
+                    point_offset
+                )
+                .as_bytes(),
+            )
+            .unwrap();
+    }
+
+    // Define loops
+    geo_file.write("\n//Register loops\n".as_bytes()).unwrap();
+
+    for (i, vertices) in vertices_containers.iter().enumerate() {
+        let point_offset = inner_offsets[i];
+
+        geo_file
+            .write(format!("Line Loop({}) = {{", i + 1).as_bytes())
+            .unwrap();
+        for i in 0..vertices.len() {
+            geo_file
+                .write(
+                    format!(
+                        "{} {}",
+                        ({
+                            if i != 0 {
+                                ","
+                            } else {
+                                ""
+                            }
+                        }),
+                        i + point_offset
+                    )
+                    .as_bytes(),
+                )
+                .unwrap();
+        }
+        geo_file.write(" };\n".as_bytes()).unwrap();
+    }
+
+    geo_file.write("\n//Define surface\n".as_bytes()).unwrap();
+
+    geo_file.write("Plane Surface(1) = {".as_bytes()).unwrap();
+
+    let iter: Vec<usize> = {
+        if vertices_containers.len() > 2 {
+            (0..vertices_containers.len()).collect()
+        } else {
+            (0..vertices_containers.len()).rev().collect()
+        }
+    };
+
+    for (i, loop_idx) in iter.iter().enumerate() {
         geo_file
             .write(
                 format!(
                     "{} {}",
                     ({
-                        if i != 0 {
+                        if i != 0{
                             ","
                         } else {
                             ""
                         }
                     }),
-                    i
+                    loop_idx + 1
                 )
                 .as_bytes(),
             )
             .unwrap();
     }
     geo_file.write(" };\n".as_bytes()).unwrap();
-    geo_file
-        .write("Plane Surface(1) = {1};\n".as_bytes())
-        .unwrap();
 
     // Define meshing settings
-
     geo_file
         .write(
             format!(
                 "\n// Define Mesh Settings\n\
                 Mesh.ElementOrder = 1;\n\
                 Mesh.Algorithm  = 1;\n\
+                Mesh.CharacteristicLengthMin = {cl_min};\n\
                 Mesh.CharacteristicLengthMax = {cl_max};\n\
-                Mesh.CharacteristicLengthMin = {cl_min};\n\n\
                 Mesh 2;\n\
                 ",
-                cl_max = characteristic_length + characteristic_length_variance,
-                cl_min = characteristic_length - characteristic_length_variance,
+                cl_min = characteristic_length_min,
+                cl_max = characteristic_length_max,
             )
             .as_bytes(),
         )
@@ -237,22 +426,22 @@ fn build_geo(
 /// * `characteristic_length` - Characteristic length of the mesh
 /// * `characteristic_length_variance` - Characteristic length variance of the mesh
 fn compute_mesh(
-    vertices: &Vec<Vertex>,
+    vertices: &Vec<Vec<Vertex>>,
     output: &str,
-    characteristic_length: f32,
-    characteristic_length_variance: f32,
+    characteristic_length_min: f32,
+    characteristic_length_max: f32,
 ) -> Result<(), MagnetiteError> {
     let geo_filepath = "geom.geo";
 
     println!(
-        "info: building .geo for Gmsh with CL={:.3} and CV={:.3}",
-        characteristic_length, characteristic_length_variance
+        "info: building .geo for Gmsh with {:.3}< CL < {:.3}",
+        characteristic_length_min, characteristic_length_max
     );
     build_geo(
         vertices,
         geo_filepath,
-        characteristic_length,
-        characteristic_length_variance,
+        characteristic_length_min,
+        characteristic_length_max,
     )?;
 
     println!("info: running gmsh...");
@@ -271,7 +460,7 @@ fn compute_mesh(
         }
     };
 
-    std::fs::remove_file(geo_filepath).expect("Failed to delete .geo file");
+    // std::fs::remove_file(geo_filepath).expect("Failed to delete .geo file");
 
     Ok(())
 }
@@ -443,7 +632,7 @@ fn parse_mesh(mesh_file: &str) -> Result<(Vec<Node>, Vec<Element>), MagnetiteErr
         elements.len()
     );
 
-    std::fs::remove_file(mesh_file).expect("Failed to delete .msh file");
+    // std::fs::remove_file(mesh_file).expect("Failed to delete .msh file");
 
     Ok((nodes, elements))
 }
@@ -523,12 +712,12 @@ fn parse_input_metadata(input_json: &JsonValue) -> ModelMetadata {
         poisson_ratio: input_json["metadata"]["poisson_ratio"]
             .as_f64()
             .expect("error in poisson_ratio field"),
-        characteristic_length: input_json["metadata"]["characteristic_length"]
+        characteristic_length_min: input_json["metadata"]["characteristic_length_min"]
             .as_f32()
-            .expect("error in characteristic_length field"),
-        characteristic_length_variance: input_json["metadata"]["characteristic_length_variance"]
+            .expect("error in characteristic_length_min field"),
+        characteristic_length_max: input_json["metadata"]["characteristic_length_max"]
             .as_f32()
-            .expect("error in characteristic_length_variance field"),
+            .expect("error in characteristic_length_max field"),
     }
 }
 
@@ -574,12 +763,12 @@ fn apply_boundary_conditions(
                 .expect(format!("Bad value for x_target_max in {name}").as_str())
         }
         if rule_json["region"].has_key("y_target_min") {
-            boundary_region.x_min = rule_json["region"]["y_target_min"]
+            boundary_region.y_min = rule_json["region"]["y_target_min"]
                 .as_f64()
                 .expect(format!("Bad value for y_target_min in {name}").as_str())
         }
         if rule_json["region"].has_key("y_target_max") {
-            boundary_region.x_max = rule_json["region"]["y_target_max"]
+            boundary_region.y_max = rule_json["region"]["y_target_max"]
                 .as_f64()
                 .expect(format!("Bad value for y_target_max in {name}").as_str())
         }
@@ -630,30 +819,33 @@ fn apply_boundary_conditions(
 /// * `characteristic_length` - Characteristic length of the mesh
 /// * `characteristic_length_variance` - Characteristic length variance of the mesh
 pub fn run(
-    geometry_file: &str,
+    geometry_files: Vec<&str>,
     input_file: &str,
 ) -> Result<(Vec<Node>, Vec<Element>, ModelMetadata), MagnetiteError> {
     let input_file_json = load_input_file(input_file)?;
     let model_metadata = parse_input_metadata(&input_file_json);
 
-    let vertices: Vec<Vertex>;
+    let mut vertices: Vec<Vec<Vertex>> = Vec::new();
 
-    if geometry_file.ends_with(".svg") {
-        vertices = parse_svg(geometry_file)?;
-    } else if geometry_file.ends_with(".csv") {
-        vertices = parse_csv(geometry_file)?;
-    } else {
-        return Err(MagnetiteError::Input(
-            format!("Unrecognized geometry filetype {geometry_file}").to_string(),
-        ));
+    for geom in geometry_files {
+        if geom.ends_with(".svg") {
+            vertices = parse_svg(geom, model_metadata.characteristic_length_min)?;
+            break;
+        } else if geom.ends_with(".csv") {
+            vertices.push(parse_csv(geom)?);
+        } else {
+            return Err(MagnetiteError::Input(
+                format!("Unrecognized geometry filetype {geom}").to_string(),
+            ));
+        }
     }
 
     let mesh_filepath = "geom.msh";
     compute_mesh(
         &vertices,
         mesh_filepath,
-        model_metadata.characteristic_length,
-        model_metadata.characteristic_length_variance,
+        model_metadata.characteristic_length_min,
+        model_metadata.characteristic_length_max,
     )?;
 
     let (mut nodes, elements) = parse_mesh(mesh_filepath)?;
