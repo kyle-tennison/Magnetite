@@ -34,32 +34,27 @@ fn parse_svg(svg_file: &str, min_element_length: f32) -> Result<Vec<Vec<Vertex>>
         }
     };
 
-    let doc = roxmltree::Document::parse(&contents).unwrap();
+    let mut skipped_vertices: usize = 0; // count number of skips
 
+    // Parse polylines and polygons from svg xml
+    let doc = roxmltree::Document::parse(&contents).unwrap();
     let polylines: Vec<roxmltree::Node> = doc
         .descendants()
         .into_iter()
         .filter(|n| n.tag_name().name() == "polyline" || n.tag_name().name() == "polygon")
         .collect();
 
-    if polylines.len() == 0 {
-        return Err(MagnetiteError::Input(
-            "No parsable geometry in svg".to_string(),
-        ));
-    }
-
     let mut vertex_containers: Vec<Vec<Vertex>> = Vec::new();
-    let mut skipped_vertices: usize = 0;
-
     vertex_containers.push(Vec::new()); // placeholder for outer
+
     for polyline in polylines {
-        
+
         // Read points from points attribute
         let points_raw = match polyline.attribute("points") {
             Some(p) => p,
             None => {
                 return Err(MagnetiteError::Input(
-                    "Error in svg file. No points in polyline element.".to_string(),
+                    format!("Error in svg file. No points in polyline element {:?}", polyline.id()),
                 ))
             }
         }
@@ -76,25 +71,25 @@ fn parse_svg(svg_file: &str, min_element_length: f32) -> Result<Vec<Vec<Vertex>>
         while i < points_nopair.len() {
             let x = points_nopair[i];
             let y = -points_nopair[i + 1]; // invert y
+            i += 2;
 
             let vertex = Vertex{ x, y };
 
             // ensure that vertex is not already in points
             if points.contains(&vertex){
                 println!("warning [mesh]: duplicate point at {:?} in polyline id {:?}", &vertex, polyline.id());
+                continue;
             }
-            else{
-                points.push(Vertex { x, y });
-            }
-
             // ensure vertex is proper distance away from last point
             if let Some(last_vertex) = points.last(){
                 let distance = f64::sqrt( f64::powi(last_vertex.x - vertex.x, 2) + f64::powi(last_vertex.y - vertex.y, 2)  );
                 if distance < min_element_length.into() {
                     skipped_vertices += 1;
+                    continue;
                 }
             }
-            i += 2;
+
+            points.push(Vertex { x, y });
         }
 
         // Save points to corresponding field
@@ -104,6 +99,71 @@ fn parse_svg(svg_file: &str, min_element_length: f32) -> Result<Vec<Vec<Vertex>>
             } else if id.trim().starts_with("OUTER") {
                 if vertex_containers[0].is_empty() {
                     vertex_containers[0] = points
+                } else {
+                    return Err(MagnetiteError::Input(
+                        "Multiple OUTER geometries in SVG".to_owned(),
+                    ));
+                }
+            } else {
+                println!("warning: skipping polyline geometer with id {id}. Only supports OUTER and INNER")
+            }
+        } else {
+            return Err(MagnetiteError::Input(
+                "Error in svg file. Missing id filed on polyline".to_owned(),
+            ));
+        }
+    }
+
+    // Parse rectangles from svg xml
+    let doc = roxmltree::Document::parse(&contents).unwrap();
+    let rectangles: Vec<roxmltree::Node> = doc
+        .descendants()
+        .into_iter()
+        .filter(|n| n.tag_name().name() == "rect")
+        .collect();
+
+
+    for rect in rectangles {
+
+        let x: f64= match rect.attribute("x") {
+            Some(x) => x,
+            None => {
+                return Err(MagnetiteError::Input("Error in svg file. No x definition in rectangle".to_owned()));
+            }
+        }.parse().expect("Non-float value in svg points");
+        let y: f64 = match rect.attribute("y") {
+            Some(y) => y,
+            None => {
+                return Err(MagnetiteError::Input("Error in svg file. No y definition in rectangle".to_owned()));
+            }
+        }.parse().expect("Non-float value in svg points");
+        let width: f64 = match rect.attribute("width") {
+            Some(width) => width,
+            None => {
+                return Err(MagnetiteError::Input("Error in svg file. No width definition in rectangle".to_owned()));
+            }
+        }.parse().expect("Non-float value in svg points");
+        let height: f64 = match rect.attribute("height") {
+            Some(height) => height,
+            None => {
+                return Err(MagnetiteError::Input("Error in svg file. No height definition in rectangle".to_owned()));
+            }
+        }.parse().expect("Non-float value in svg points");
+
+        let vertices = vec![
+            Vertex {x: x, y: -y},
+            Vertex {x: x+width, y: -y},
+            Vertex {x: x+width, y: -y-height},
+            Vertex {x, y: y-height},
+        ];
+
+        // Save points to corresponding field
+        if let Some(id) = rect.attribute("id") {
+            if id.trim().starts_with("INNER") {
+                vertex_containers.push(vertices)
+            } else if id.trim().starts_with("OUTER") {
+                if vertex_containers[0].is_empty() {
+                    vertex_containers[0] = vertices
                 } else {
                     return Err(MagnetiteError::Input(
                         "Multiple OUTER geometries in SVG".to_owned(),
