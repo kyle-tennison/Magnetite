@@ -3,7 +3,7 @@
     "part_thickness": 0.5,
     "material_elasticity": 69e9,
     "poisson_ratio": 0.33,
-    "characteristic_length_min": 3,
+    "characteristic_length_min": 4,
     "characteristic_length_max": 10
   },
   "boundary_conditions": {
