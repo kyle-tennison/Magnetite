@@ -123,21 +123,17 @@ $$
 \sigma_y\\\
 \tau_{xy}
 \end{bmatrix}
-
 = \frac{E}{1-v^2}
-
 \begin{bmatrix}
 1 & v & 0 \\\
 v & 1 & 0 \\\
 0 & 0 & \frac{1-v}{2}
 \end{bmatrix}
-
 \begin{bmatrix}
 \epsilon_x \\\
 \epsilon_y \\\
 \gamma_{xy}
 \end{bmatrix}
-
 $$
 
 This allows us to simply state that $\sigma = D\ \epsilon$, where $D$ is:
