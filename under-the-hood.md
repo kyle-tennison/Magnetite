@@ -119,23 +119,23 @@ Phew! That's a lot. Let's clean this up into one nice vector:
 
 $$
 \begin{bmatrix}
-\sigma_x\\
-\sigma_y\\
+\sigma_x\\\
+\sigma_y\\\
 \tau_{xy}
 \end{bmatrix}
 
 = \frac{E}{1-v^2}
 
 \begin{bmatrix}
-1 & v & 0 \\
-v & 1 & 0 \\
+1 & v & 0 \\\
+v & 1 & 0 \\\
 0 & 0 & \frac{1-v}{2}
 \end{bmatrix}
 
 \begin{bmatrix}
-\epsilon_x \\
-\epsilon_y \\
-\gamma_{xy} \\
+\epsilon_x \\\
+\epsilon_y \\\
+\gamma_{xy}
 \end{bmatrix}
 
 $$
@@ -146,8 +146,8 @@ $$
 D= \frac{E}{1-v^2}
 
 \begin{bmatrix}
-1 & v & 0 \\
-v & 1 & 0 \\
+1 & v & 0 \\\
+v & 1 & 0 \\\
 0 & 0 & \frac{1-v}{2}
 \end{bmatrix}
 
