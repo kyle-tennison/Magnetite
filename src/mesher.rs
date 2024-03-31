@@ -518,7 +518,7 @@ fn compute_mesh(
         }
     };
 
-    // std::fs::remove_file(geo_filepath).expect("Failed to delete .geo file");
+    std::fs::remove_file(geo_filepath).expect("Failed to delete .geo file");
 
     Ok(())
 }
@@ -690,7 +690,7 @@ fn parse_mesh(mesh_file: &str) -> Result<(Vec<Node>, Vec<Element>), MagnetiteErr
         elements.len()
     );
 
-    // std::fs::remove_file(mesh_file).expect("Failed to delete .msh file");
+    std::fs::remove_file(mesh_file).expect("Failed to delete .msh file");
 
     Ok((nodes, elements))
 }
