@@ -37,6 +37,8 @@ Then, optionally, you can alias the binary:
 alias magnetite=target/release/magnetite
 ```
 
+You will also need [Gmsh](https://gmsh.info/#Download) installed on your machine.
+
 ### Running Example
 
 Try running th example above! Go to `examples/cover-example` and run the following:
