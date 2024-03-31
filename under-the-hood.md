@@ -140,13 +140,11 @@ This allows us to simply state that $\sigma = D\ \epsilon$, where $D$ is:
 
 $$
 D= \frac{E}{1-v^2}
-
 \begin{bmatrix}
 1 & v & 0 \\\
 v & 1 & 0 \\\
 0 & 0 & \frac{1-v}{2}
 \end{bmatrix}
-
 $$
 
 
