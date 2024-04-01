@@ -197,6 +197,8 @@ To create a properly constrained model, there must be one unknown in each axis. 
 
 The equations used to obtain stiffness matrices were derived in this [University of New Mexico Paper](https://www.unm.edu/~bgreen/ME360/2D%20Triangular%20Elements.pdf).
 
+Other references are made to this [Indian Institute of Science Paper](https://mecheng.iisc.ac.in/suresh/me237/feaNotes/Chapter2.pdf).
+
 More information is found on this [Wikipedia page](https://en.wikipedia.org/wiki/Finite_element_method)
 
 ## More
