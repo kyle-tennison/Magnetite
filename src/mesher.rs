@@ -127,7 +127,7 @@ fn parse_svg(svg_file: &str, min_element_length: f32) -> Result<Vec<Vec<Vertex>>
             }
         } else {
             return Err(MagnetiteError::Input(
-                "Error in svg file. Missing id filed on polyline".to_owned(),
+                "Error in svg file. Missing id field on polyline".to_owned(),
             ));
         }
     }
@@ -725,27 +725,27 @@ fn load_input_file(input_file: &str) -> Result<JsonValue, MagnetiteError> {
 
     if !input_file_json.has_key("metadata") {
         return Err(MagnetiteError::Input(
-            "Input json missing metadata filed".to_string(),
+            "Input json missing metadata field".to_string(),
         ));
     }
     if !input_file_json.has_key("boundary_conditions") {
         return Err(MagnetiteError::Input(
-            "Input json missing boundary_conditions filed".to_string(),
+            "Input json missing boundary_conditions field in metadata section".to_string(),
         ));
     }
     if !input_file_json["metadata"].has_key("part_thickness") {
         return Err(MagnetiteError::Input(
-            "Input json missing part_thickness filed".to_string(),
+            "Input json missing part_thickness field in metadata section".to_string(),
         ));
     }
     if !input_file_json["metadata"].has_key("material_elasticity") {
         return Err(MagnetiteError::Input(
-            "Input json missing material_elasticity filed".to_string(),
+            "Input json missing material_elasticity field in metadata section".to_string(),
         ));
     }
     if !input_file_json["metadata"].has_key("poisson_ratio") {
         return Err(MagnetiteError::Input(
-            "Input json missing poisson_ratio filed".to_string(),
+            "Input json missing poisson_ratio field in metadata section".to_string(),
         ));
     }
 
@@ -759,25 +759,45 @@ fn load_input_file(input_file: &str) -> Result<JsonValue, MagnetiteError> {
 ///
 /// # Returns
 /// A ModelMetadata instance
-fn parse_input_metadata(input_json: &JsonValue) -> ModelMetadata {
-    // todo!("Make this raise a magnetite error:");
-    ModelMetadata {
-        youngs_modulus: input_json["metadata"]["material_elasticity"]
-            .as_f64()
-            .expect("error in material_elasticity field"),
-        part_thickness: input_json["metadata"]["part_thickness"]
-            .as_f64()
-            .expect("error in part_thickness field"),
-        poisson_ratio: input_json["metadata"]["poisson_ratio"]
-            .as_f64()
-            .expect("error in poisson_ratio field"),
-        characteristic_length_min: input_json["metadata"]["characteristic_length_min"]
-            .as_f32()
-            .expect("error in characteristic_length_min field"),
-        characteristic_length_max: input_json["metadata"]["characteristic_length_max"]
-            .as_f32()
-            .expect("error in characteristic_length_max field"),
+fn parse_input_metadata(input_json: &JsonValue) -> Result<ModelMetadata, MagnetiteError> {
+    let youngs_modulus = input_json["metadata"]["material_elasticity"].as_f64();
+
+    let part_thickness = input_json["metadata"]["part_thickness"].as_f64();
+
+    let poisson_ratio = input_json["metadata"]["poisson_ratio"].as_f64();
+
+    let characteristic_length_min = input_json["metadata"]["characteristic_length_min"].as_f32();
+
+    let characteristic_length_max = input_json["metadata"]["characteristic_length_max"].as_f32();
+
+    if youngs_modulus.is_none() {
+        return Err(MagnetiteError::Input(
+            "Input json missing material elasticity".to_owned(),
+        ));
     }
+    if poisson_ratio.is_none() {
+        return Err(MagnetiteError::Input(
+            "Input json missing poisson ratio".to_owned(),
+        ));
+    }
+    if characteristic_length_min.is_none() {
+        return Err(MagnetiteError::Input(
+            "Input json missing minimum characteristic length".to_owned(),
+        ));
+    }
+    if characteristic_length_max.is_none() {
+        return Err(MagnetiteError::Input(
+            "Input json missing maximum characteristic length".to_owned(),
+        ));
+    }
+
+    Ok(ModelMetadata {
+        youngs_modulus: youngs_modulus.unwrap(),
+        poisson_ratio: poisson_ratio.unwrap(),
+        part_thickness: part_thickness.unwrap(),
+        characteristic_length_min: characteristic_length_min.unwrap(),
+        characteristic_length_max: characteristic_length_max.unwrap(),
+    })
 }
 
 /// Applies boundary conditions to a vector of nodes from the input json
@@ -914,7 +934,7 @@ pub fn run(
     input_file: &str,
 ) -> Result<(Vec<Node>, Vec<Element>, ModelMetadata), MagnetiteError> {
     let input_file_json = load_input_file(input_file)?;
-    let model_metadata = parse_input_metadata(&input_file_json);
+    let model_metadata = parse_input_metadata(&input_file_json)?;
 
     let mut vertices: Vec<Vec<Vertex>> = Vec::new();
 
