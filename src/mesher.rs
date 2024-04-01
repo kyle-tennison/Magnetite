@@ -590,7 +590,8 @@ fn parse_mesh(mesh_file: &str) -> Result<(Vec<Node>, Vec<Element>), MagnetiteErr
 
                 let num_nodes_local = node_data[3];
 
-                let mut node_tags: Vec<usize> = Vec::with_capacity(num_nodes_local);
+                let mut node_tags: Vec<usize> =
+                    Vec::with_capacity(num_nodes_local * std::mem::size_of::<usize>());
 
                 for _ in 0..num_nodes_local {
                     let tag: usize = lines
