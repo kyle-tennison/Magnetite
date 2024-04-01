@@ -841,23 +841,35 @@ fn apply_boundary_conditions(
         };
 
         // Validate input
-        if boundary_region.x_min > boundary_region.x_max{
-            return Err(MagnetiteError::Input(format!("Boundary '{name}' has x_target_min greater than x_target_max")))
+        if boundary_region.x_min > boundary_region.x_max {
+            return Err(MagnetiteError::Input(format!(
+                "Boundary '{name}' has x_target_min greater than x_target_max"
+            )));
         }
-        if boundary_region.y_min > boundary_region.y_max{
-            return Err(MagnetiteError::Input(format!("Boundary '{name}' has y_target_min greater than y_target_max")))
+        if boundary_region.y_min > boundary_region.y_max {
+            return Err(MagnetiteError::Input(format!(
+                "Boundary '{name}' has y_target_min greater than y_target_max"
+            )));
         }
-        if boundary_target.fx.is_none() && boundary_target.ux.is_none(){
-            return Err(MagnetiteError::Input(format!("Boundary '{name}' is under-constrained in x-axis")))
+        if boundary_target.fx.is_none() && boundary_target.ux.is_none() {
+            return Err(MagnetiteError::Input(format!(
+                "Boundary '{name}' is under-constrained in x-axis"
+            )));
         }
-        if boundary_target.fy.is_none() && boundary_target.uy.is_none(){
-            return Err(MagnetiteError::Input(format!("Boundary '{name}' is under-constrained in y-axis")))
+        if boundary_target.fy.is_none() && boundary_target.uy.is_none() {
+            return Err(MagnetiteError::Input(format!(
+                "Boundary '{name}' is under-constrained in y-axis"
+            )));
         }
-        if boundary_target.fx.is_some() && boundary_target.ux.is_some(){
-            return Err(MagnetiteError::Input(format!("Boundary '{name}' is over-constrained in x-axis")))
+        if boundary_target.fx.is_some() && boundary_target.ux.is_some() {
+            return Err(MagnetiteError::Input(format!(
+                "Boundary '{name}' is over-constrained in x-axis"
+            )));
         }
-        if boundary_target.fy.is_some() && boundary_target.uy.is_some(){
-            return Err(MagnetiteError::Input(format!("Boundary '{name}' is over-constrained in y-axis")))
+        if boundary_target.fy.is_some() && boundary_target.uy.is_some() {
+            return Err(MagnetiteError::Input(format!(
+                "Boundary '{name}' is over-constrained in y-axis"
+            )));
         }
 
         rules.push(BoundaryRule {
