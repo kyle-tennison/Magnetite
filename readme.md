@@ -21,6 +21,9 @@ Magnetite is a simple linear-elastic mechanical solver for isotropic 2D models. 
 6. After solving the system, we post-process the system to solve for stresses, then we output the results as a `nodes.csv` and `elements.csv`.
 7. Finally, Magnetite triggers a Python script to plot these elements in [matplotlib](https://matplotlib.org/). 
 
+![A screenshot of a simulation output](media/tensilve-results.png)
+
+
 ## Installation and Running
 
 It's important to build this crate in release mode. The underlying linear algebra accelerators don't seem to trigger in dev mode, meaning that everything will work in dev—just very slowly.
