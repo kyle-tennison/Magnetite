@@ -9,8 +9,8 @@ A 2D linear-elastic FEA program for isotropic materials, built in Rust.
 Magnetite is a simple linear-elastic mechanical solver for isotropic 2D models. Here's how it works:
 
 1. First, we give Magnetite two things: an input json and a geometry file
-    - The input json is explained in greater detail [below](#input_json); it lays out boundary conditions for the simulation, including part-thickness and material elasticity.
-    - The geometry is provided via an `svg` file. There's some limitations to what Magnetite supports, and this is covered [below](#geometry) too. Optionally, you can provide CSV files of vertices, but this method tends to be convoluted.
+    - The input json is explained in greater detail below; it lays out boundary conditions for the simulation, including part-thickness and material elasticity.
+    - The geometry is provided via an `svg` file. There's some limitations to what Magnetite supports, and this is covered below too. Optionally, you can provide CSV files of vertices, but this method tends to be convoluted.
 
 2. Next, Magnetite rebuilds your geometry into a `.geo` file. This allows us to use [Gmesh](https://gmsh.info)—an open source meshing program—to create a mesh of the geometry using [Delaunay triangulation](https://en.wikipedia.org/wiki/Delaunay_triangulation).
     > Gmesh is a vastly equipped piece of software. The algorithm Magnetite uses is Delaunay-based, but many mesh conflicts are resolved by other Gmesh algorithms.
