@@ -99,7 +99,19 @@ fn parse_svg(svg_file: &str, min_element_length: f32) -> Result<Vec<Vec<Vertex>>
         }
 
         // Save points to corresponding field
+        let mut item_id: Option<&str> = None;
+
         if let Some(id) = polyline.attribute("id") {
+            item_id = Some(id);
+        }
+        // try to resolve id from parent
+        else if let Some(parent) = polyline.parent() {
+            if let Some(id) = parent.attribute("id") {
+                item_id = Some(id);
+            }
+        }
+
+        if let Some(id) = item_id {
             if id.trim().starts_with("INNER") {
                 vertex_containers.push(points)
             } else if id.trim().starts_with("OUTER") {
@@ -111,7 +123,7 @@ fn parse_svg(svg_file: &str, min_element_length: f32) -> Result<Vec<Vec<Vertex>>
                     ));
                 }
             } else {
-                println!("warning: skipping polyline geometer with id {id}. Only supports OUTER and INNER")
+                println!("warning: skipping polyline geometry with id {id}. Only supports OUTER and INNER");
             }
         } else {
             return Err(MagnetiteError::Input(
@@ -130,31 +142,38 @@ fn parse_svg(svg_file: &str, min_element_length: f32) -> Result<Vec<Vec<Vertex>>
 
     for rect in rectangles {
         let x: f64 = match rect.attribute("x") {
-            Some(x) => x,
+            Some(x) => x
+                .parse()
+                .expect(format!("Non-float value in svg points at node {:?}", rect.id()).as_str()),
             None => {
-                return Err(MagnetiteError::Input(
-                    "Error in svg file. No x definition in rectangle".to_owned(),
-                ));
+                println!(
+                    "warning [mesh]: Missing x definition in rectangle {:?}. Assuming zero.",
+                    rect.id()
+                );
+                0.0
             }
-        }
-        .parse()
-        .expect("Non-float value in svg points");
+        };
+
         let y: f64 = match rect.attribute("y") {
-            Some(y) => y,
+            Some(y) => y
+                .parse()
+                .expect(format!("Non-float value in svg points at node {:?}", rect.id()).as_str()),
             None => {
-                return Err(MagnetiteError::Input(
-                    "Error in svg file. No y definition in rectangle".to_owned(),
-                ));
+                println!(
+                    "warning [mesh]: Missing y definition in rectangle {:?}. Assuming zero.",
+                    rect.id()
+                );
+                0.0
             }
-        }
-        .parse()
-        .expect("Non-float value in svg points");
+        };
+
         let width: f64 = match rect.attribute("width") {
             Some(width) => width,
             None => {
-                return Err(MagnetiteError::Input(
-                    "Error in svg file. No width definition in rectangle".to_owned(),
-                ));
+                return Err(MagnetiteError::Input(format!(
+                    "Error in svg file. No width definition in rectangle. Conflicting node: {:?}",
+                    rect.id()
+                )));
             }
         }
         .parse()
@@ -162,9 +181,10 @@ fn parse_svg(svg_file: &str, min_element_length: f32) -> Result<Vec<Vec<Vertex>>
         let height: f64 = match rect.attribute("height") {
             Some(height) => height,
             None => {
-                return Err(MagnetiteError::Input(
-                    "Error in svg file. No height definition in rectangle".to_owned(),
-                ));
+                return Err(MagnetiteError::Input(format!(
+                    "Error in svg file. No height definition in rectangle. Conflicting node: {:?}",
+                    rect.id()
+                )));
             }
         }
         .parse()
@@ -184,7 +204,19 @@ fn parse_svg(svg_file: &str, min_element_length: f32) -> Result<Vec<Vec<Vertex>>
         ];
 
         // Save points to corresponding field
+        let mut item_id: Option<&str> = None;
+
         if let Some(id) = rect.attribute("id") {
+            item_id = Some(id);
+        }
+        // try to resolve id from parent
+        else if let Some(parent) = rect.parent() {
+            if let Some(id) = parent.attribute("id") {
+                item_id = Some(id);
+            }
+        }
+
+        if let Some(id) = item_id {
             if id.trim().starts_with("INNER") {
                 vertex_containers.push(vertices)
             } else if id.trim().starts_with("OUTER") {
@@ -200,7 +232,7 @@ fn parse_svg(svg_file: &str, min_element_length: f32) -> Result<Vec<Vec<Vertex>>
             }
         } else {
             return Err(MagnetiteError::Input(
-                "Error in svg file. Missing id filed on polyline".to_owned(),
+                "Error in svg file. Missing id field on polyline".to_owned(),
             ));
         }
     }
@@ -486,7 +518,7 @@ fn compute_mesh(
         }
     };
 
-    // std::fs::remove_file(geo_filepath).expect("Failed to delete .geo file");
+    std::fs::remove_file(geo_filepath).expect("Failed to delete .geo file");
 
     Ok(())
 }
@@ -558,7 +590,8 @@ fn parse_mesh(mesh_file: &str) -> Result<(Vec<Node>, Vec<Element>), MagnetiteErr
 
                 let num_nodes_local = node_data[3];
 
-                let mut node_tags: Vec<usize> = Vec::with_capacity(num_nodes_local);
+                let mut node_tags: Vec<usize> =
+                    Vec::with_capacity(num_nodes_local * std::mem::size_of::<usize>());
 
                 for _ in 0..num_nodes_local {
                     let tag: usize = lines
@@ -658,7 +691,7 @@ fn parse_mesh(mesh_file: &str) -> Result<(Vec<Node>, Vec<Element>), MagnetiteErr
         elements.len()
     );
 
-    // std::fs::remove_file(mesh_file).expect("Failed to delete .msh file");
+    std::fs::remove_file(mesh_file).expect("Failed to delete .msh file");
 
     Ok((nodes, elements))
 }
