@@ -1,0 +1,36 @@
+{
+    "metadata": {
+      "part_thickness": 0.25,
+      "material_elasticity": 69e9,
+      "poisson_ratio": 0.33,
+      "characteristic_length_min": 20,
+      "characteristic_length_max": 30
+    },
+    "boundary_conditions": {
+      "restraint": {
+        "region": {
+          "y_target_max": -590,
+          "y_target_min": -700
+        },
+        "targets": {
+          "ux": 0,
+          "uy": 0,
+          "fx": null,
+          "fy": null
+        }
+      },
+      "load": {
+        "region": {
+          "y_target_min": -30,
+          "y_target_max": 1
+        },
+        "targets": {
+          "ux": 0,
+          "uy": 150,
+          "fx": null,
+          "fy": null
+        }
+      }
+    }
+  }
+  
