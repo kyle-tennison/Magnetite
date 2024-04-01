@@ -9,7 +9,7 @@ A 2D linear-elastic FEA program for isotropic materials, built in Rust.
 Magnetite is a simple linear-elastic mechanical solver for isotropic 2D models. Here's how it works:
 
 1. First, we give Magnetite two things: an input json and a geometry file
-    - The input json is explained in greater detail below; it lays out boundary conditions for the simulation, including part-thickness and material elasticity.
+    - The input json is explained in greater detail below; it lays out boundary conditions and other parameters for the simulation, including part-thickness and material elasticity.
     - The geometry is provided via an `svg` file. There's some limitations to what Magnetite supports, and this is covered below too. Optionally, you can provide CSV files of vertices, but this method tends to be convoluted.
 
 2. Next, Magnetite rebuilds your geometry into a `.geo` file. This allows us to use [Gmesh](https://gmsh.info)—an open source meshing program—to create a mesh of the geometry using [Delaunay triangulation](https://en.wikipedia.org/wiki/Delaunay_triangulation).
@@ -41,7 +41,7 @@ You will also need [Gmsh](https://gmsh.info/#Download) installed on your machine
 
 ### Running Example
 
-Try running th example above! Go to `examples/cover-example` and run the following:
+Try running the example above! Go to `examples/cover-example` and run the following:
 
 ```
 magnetite input.json geom.svg
@@ -97,7 +97,7 @@ We can export this document as a `.svg`, then we're ready to run a simulation on
 
 ### CSV Files
 
-CSV files are simpler to use, but they are cumbersome to create. These CSV files only have two fields, x & y, which detail the vertices in the model. The ordering of these vertices defines the region it defines.
+CSV files are simpler to use, but they are cumbersome to create. These CSV files only have two fields, x & y, which detail the vertices in the model. The ordering of these vertices defines the connections between them.
 
 
 ```csv
@@ -184,7 +184,7 @@ By default, the region is $\mathbb{R}^2$; we restrict it with:
 - `y_target_min`
 - `y_target_max`
 
-We are effectively saying: $R=\{(x,y)\in{\mathbb{R}^2|x_{target-min} ≤x≤ x_{target-max}, y_{target-min} ≤y≤ y_{target-max}}\}$
+We are effectively saying: $R=\\{(x,y)\in{\mathbb{R}^2|x_{target-min} ≤x≤ x_{target-max}, y_{target-min} ≤y≤ y_{target-max}}\\}$
 
 > Values left undefined will default to $\infty$.
 
@@ -206,3 +206,5 @@ More information is found on this [Wikipedia page](https://en.wikipedia.org/wiki
 Magnetite is a Rust-adapdation of my Python-based solver [Pyrite](https://github.com/kyle-tennison/Pyrite). Eventually, I hope to build a 3D solver, and Magnetite will be the starting-place for that.
 
 These isotropic linear-elastic solvers are stepping stones, and eventually, I hope to use them for some pretty ambitious projects.
+
+A lot more of how this solver works is documented in ["under the hood."](under-the-hood.md) If you're interested, check it out!

@@ -25,9 +25,9 @@
         "x_target_max": 12
       },
       "targets": {
-        "ux": null,
+        "ux": 3,
         "uy": null,
-        "fx": -6e8,
+        "fx": null,
         "fy": 0
       }
     }

@@ -10,9 +10,9 @@ If you haven't already, checkout the [main readme](readme.md); this details how 
 
 The goal of meshing is to turn our 2D model into Nodes and Elements. Nodes are effectively just points (with some extra metadata), and elements are triangles made from three Nodes. Thats not bad, is it?
 
-Magnetite supports both CSV inputs and SVG inputs. In both cases, the desired end result is a vector of vectors of Nodes. We need a vector of vectors because we need a way to differentiate between external geometry and internal geometry. Because we know that there's only ever going to be one external geometry, we can reserve the 0th index of this vector of vectors for the collection of vertices defined in the outer geometry; all of the following indices will be filled by internal geometry.
+Magnetite supports both CSV inputs and SVG inputs. In both cases, the desired end result is a vector of vectors of Nodes. We need a vector of vectors because we need a way to differentiate between external geometry and internal geometry. Because we know that there's only ever going to be one external geometry, we can reserve the $0^{th}$ index of this vector of vectors for the collection of vertices defined in the outer geometry; all of the following indices will be filled by internal geometry.
 
-Once we've established the nodes in the model, we can translate them into a `.geo` file. This will serve as the input to `Gmsh`. There is a [Gmsh SDK for Rust](https://docs.rs/gmsh-sys/latest/gmsh_sys/), but this method had the benefit of debugging the .geo file at will. At some point, I may switch to this method as it's objectively better.
+Once we've established the nodes in the model, we can translate them into a `.geo` file. This will serve as the input to `Gmsh`. There is a [Gmsh SDK for Rust](https://docs.rs/gmsh-sys/latest/gmsh_sys/), but this method had the benefit of debugging the .geo file at will. At some point, I may switch to this better method.
 
 With the `.geo` file in hand, we can run `gmsh geom.geo -2 -o geom.msh` to get our `geom.msh`. Simple enough!
 
@@ -34,7 +34,7 @@ $$F=-kx$$
 
 $F$ is force, $k$ is stiffness, and $x$ is displacmement. Put simply, this states that the force that a spring exerts is proportional to the distance it's compressed. 
 
-Ok, so what's the big deal? Spring's alone aren't that interesting, but what's cool is that _everything is a spring_. In school, we're taught that the reason why we don't fall through the floor is due to "the normal force" — and this is ture! But what _is_ the normal force? It's just Hooke's law! When you walk down the road, you compress it, just enough for it to respond with the force to match your weight. As with everything, there's cavitates to this, but the world becomes much simpler with a linear-elastic lense.
+Ok, so what's the big deal? Spring's alone aren't that interesting, but what's cool is that _everything is a spring_. We're taught that the reason why we don't fall through the floor is due to "the normal force" — and this is true! But what _is_ the normal force? It's just Hooke's law! When you walk down the road, you compress it, just enough for it to respond with the force to match your weight. As with everything, there's cavitates to this, but this is tue for linear-elastic systems.
 
 So, if everything is a spring, why don't we represent our model as one big spring? Well, if we can, we do! In engineering statics, we say $\sigma = E \ \epsilon$, or stress is equal to elasticity times strain. This is just a fancy way of stating Hookes law, and this relationship (along with some others) allows us to derive all sorts of equations for predicting the behavior of simple geometries.
 
@@ -50,7 +50,7 @@ Before we get too deep into the math, let's go back to Hooke's law again.
 
 $$ F = -kx $$
 
-Consider what happens when we compress the string over a distance $d$. The force linearly increases as we push, and when we're done, we've put some energy into the system. Mathematically, this looks like:
+Consider what happens when we compress the string over a distance $q$. The force linearly increases as we push, and when we're done, we've put some energy into the system. Mathematically, this looks like:
 
 $$W=k\int\limits_0^qx\ dx=\frac12kq^2$$
 
@@ -62,13 +62,13 @@ $$ KE_{sp}=\frac12kq^2 $$
 
 Cool, but what's the significance? If we know the potential energy for an element in our system, we can leverage the [The Principle of Minimum Potential Energy (MPE)](https://mecheng.iisc.ac.in/suresh/me237/feaNotes/Chapter2.pdf) to arrive at a stiffness matrix. This principle states:
 
-> For conservative structural systems, of all the kinematically admissible deformations, those corresponding to the equilibrium state extremize (i.e., minimize or maximize) the total potential energy. If the extremum is a minimum, the equilibrium state is stable
+_"For conservative structural systems, of all the kinematically admissible deformations, those corresponding to the equilibrium state extremize (i.e., minimize or maximize) the total potential energy. If the extremum is a minimum, the equilibrium state is stable."_
 
 In other terms, the deformations that _minimize_ the potential energy are the equilibrium deformations; because we're building a static mechanical simulator, we are interested in the static (i.e., stable) solution, which is found at the MPE.
 
-> Note: this assumes total potential energy, including _work potential_—i.e., the opposite of work done on the system by external systems. For this reason, potential energy, for a 1D spring system, is represented as $U=U_{sp}+WP$ — where $WP$ is work potential.
+> Note: when referring to potential energy, we are referring to total potential energy including _work potential_—i.e., the opposite of work done on the system by external systems. For this reason, potential energy, for a 1D spring system, is represented as $KE=KE_{sp}+WP$ — where $WP$ is work potential.
 
-For instance, consider the following system of springs (from Indian Institute of Science):
+For instance, consider the following system of springs (from [Indian Institute of Science](https://mecheng.iisc.ac.in/suresh/me237/feaNotes/Chapter2.pdf)):
 ![](media/spring-system.png)
 
 > This image is missing $F_3$; it is applied to the lowest arrow attached to the [3] block.
@@ -89,7 +89,9 @@ As stated in the principle of MPE, the potential energy for each $q$ should be a
 
 $$
 \begin{bmatrix}
-F_1 \\ 0 \\ F_3 \\
+F_1\\ 
+0\\ 
+F_3\\
 \end{bmatrix}=
 \begin{bmatrix}
 k_1 & -k_1 & 0 \\ 
@@ -113,7 +115,7 @@ We now have a system we're able to solve. This derivation is for a 1D spring sys
 
 ### 2D Stress Elements
 
-Before we get started working with 2D elements, we'll need to consider some new properties at arise with the increased dimension. Let's look at 1D Hooke's law again, in it's stress-strain form:
+Before we get started working with 2D triangular elements, we'll need to consider some new properties at arise with the increased dimension. Let's look at 1D Hooke's law again, in it's stress-strain form:
 $$\sigma = E \epsilon$$
 
 where:
@@ -131,7 +133,7 @@ The symbols represent:
 - $\sigma$ – normal stress
 - $\tau$ – shear stress
 
-We'll also need to look at the [poisson ratio](https://en.wikipedia.org/wiki/Poisson%27s_ratio), which is dependent on the material of the element. This ratio measures ($v$) the Poisson effect, which is the phenomena that occurs when a material is stretched:
+We'll also need to look at the [poisson ratio](https://en.wikipedia.org/wiki/Poisson%27s_ratio) ($v$), which is dependent on the material of the element. This ratio measures the Poisson effect, which is the phenomena that occurs when a material is stretched:
 
 ![An image showing the Poisson effect](https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/PoissonRatio.svg/600px-PoissonRatio.svg.png)
 
@@ -141,9 +143,9 @@ When the green block is stretched, it becomes thinner in its other axes; the mag
 Now, we have the following definitions for the properties that define a 2D stress element:
 - Axial Stress ($\sigma$)
 - Axial Strain ($\epsilon$)
-- Shear Stress ($\gamma$)
-- Shear Strain ($\gamma$) (not shown above, [described here](https://en.wikipedia.org/wiki/Strain_(mechanics)#Shear_strain))
-- Young's Modulus ($E$) (also not shown, [described here](https://en.wikipedia.org/wiki/Shear_stress))
+- Shear Stress ($\tau$)
+- Shear Strain ($\gamma$) (also not shown, [described here](https://en.wikipedia.org/wiki/Strain_(mechanics)#Shear_strain))
+- Young's Modulus ($E$) 
 - Poisson Ratio ($v$)
 
 ### Triangular Elements
@@ -167,7 +169,7 @@ Now, let's consider what happens when the triangle deforms. There's a few ways t
 ![](media/triangle-split.png)
 > From University of New Mexico
 
-Considering that the area of the element is the sum of the $A_1, A_2, A_3$, we can create the following shape functions:
+Considering that the area of the element is the sum of the areas $A_1, A_2, A_3$, we can create the following shape functions:
 
 $$N_1=\frac{A_1}{A},N_2=\frac{A_2}{A},N_3=\frac{A_3}{A}$$
 
@@ -177,6 +179,7 @@ Because $N_1, N_2, N_3$ are ratios of $A$, the sum of $N_1+N_2+N_3=1$. Thus, if 
 With these definitions, we can estimate the displacements in the element with:
 
 $$u_{ex}={N_1u_{1x}+N_2u_{2x}+N_3u_{3x}}=(u_{1x}-u_{3x})\xi+(u_{2x}-u_{3x})\eta + u_{3x}$$
+
 $$u_{ey}={N_1u_{1y}+N_2u_{2y}+N_3u_{3y}}=(u_{1y}-u_{3y})\xi+(u_{2y}-u_{3y})\eta + u_{3y}$$
 
 And, we can also solve for the position of interior point:
@@ -191,10 +194,6 @@ This will allow us to do some cool stuff in a moment—hang in there.
 Finding the potential energy in a spring element is pretty simple; however, the process becomes a lot more complex for 2D elements. We use the same idea of integrating the force over displacement, as we did for the spring, for the plane as well. Instead of looking the force, we'll look at the stress $\sigma$, and instead of looking at the displacement, we'll look at the strain $\epsilon$. Thus, over the volume of a triangular slab, we can say:
 
 $$ PE = \frac 12 \iiint_V \epsilon^T \sigma\ dV $$
-
-However, we want our model to be defined in two dimensions. If we assume a constant thickness $t$, we can state:
-
-$$ PE = \frac12 \iint_A \epsilon ^T \sigma\ t\ dA $$
 
 Remember, we're working in 2D, so $\sigma$ and $\epsilon$ are both matrices:
 
@@ -212,6 +211,10 @@ $$\sigma=
 \end{bmatrix}
 $$
 
+We want our model to be defined in two dimensions. If we assume a constant thickness $t$, we can reduce the triple integral to a double integral:
+
+$$ PE = \frac12 \iint_A \epsilon ^T \sigma\ t\ dA $$
+
 Our goal is to define stress and strain so that we can apply the Principle of MPE to create a stiffness matrix for our problem. Once we have the stiffness matrix, we solve the system:
 
 $$\{F\}=[K]\{U\}$$
@@ -226,7 +229,9 @@ where ...
 For small stresses in an _isotropic_ material (i.e., a material whose properties are consistent regardless of direction), the 2D version of Hooke's law states:
 
 $$\epsilon_x=\frac{\sigma_x}{E}-v \frac{\sigma_y}{E}$$
+
 $$\epsilon_y=\frac{\sigma_y}E-v \frac{\sigma_x}{E} $$
+
 $$\gamma_{xy}=\frac{2(1+v)}{E}\tau_{xy}$$
 
 > The derivations of these equations are very complex. Feel free to read more about the derivation [here](https://en.wikipedia.org/wiki/Hooke%27s_law#Isotropic_materials)
@@ -248,6 +253,7 @@ $$E\epsilon_x=\sigma_x-v E\epsilon_y-v^2\sigma_x$$
 Now, it is possible to solve for $\sigma_x$, which then allows us to solve for $\sigma_y$. The solutions are:
 
 $$ \sigma_x=\frac{E}{1-v^2} (\epsilon_x+v \epsilon_y)$$
+
 $$ \sigma_y=\frac{E}{1-v^2} (\epsilon_y+v \epsilon_x)$$
 
 Lastly, we can rearrange ...
@@ -419,7 +425,7 @@ J^{-1}
 \end{bmatrix}
 $$
 
-There's one more trick we can apply here. It turns out that the area of a triangle can be defined as $A=\frac12|det(J)|$. Thus, we can replace the $det(J)$ term in the equation above with the area of the element, A. 
+There's one more trick we can apply here. It turns out that the area of a triangle can be defined as $A=\frac12|det(J)|$. Thus, we can replace the $det(J)$ term in the equation above with twice the area of the element, A. 
 
 $$
 \begin{bmatrix}
@@ -437,26 +443,31 @@ $$
 If we multiply to solve for $\frac{\partial u_{ex}}{\partial x}$ and $\frac{\partial u_{ex}}{\partial y}$, we'll get the following expressions:
 
 $$\frac{\partial u_{ex}}{\partial x}=\frac{1}{2A}[(y_2-y_3)\frac{\partial u_{ex}}{\partial \xi} - (y_1-y_3)\frac{\partial u_{ex}}{\partial \eta}]$$
+
 $$\frac{\partial u_{ex}}{\partial y}=\frac{1}{2A}[-(x_2-x_3)\frac{\partial u_{ex}}{\partial \xi} + (x_1-x_3)\frac{\partial u_{ex}}{\partial \eta}]$$
 
 Again, recall how we derived these equations:
 $$u_{ex}=(u_{1x}-u_{3x})\xi+(u_{2x}-u_{3x})\eta + u_{3x}$$
+
 $$u_{ey}=(u_{1y}-u_{3y})\xi+(u_{2y}-u_{3y})\eta + u_{3y}$$
 
 We can take the partial derivatives of these to solve for $\frac{\partial u_{ex}}{\partial \xi}, \frac{\partial u_{ex}}{\partial \eta}$:
 
 $$\frac{\partial u_{ex}}{\partial \xi}=(u_{1x}-u_{3x})$$
+
 $$\frac{\partial u_{ex}}{\partial \eta}=(u_{2x}-u_{3x})$$
 
 
 Substituting this into the expression before yields:
 
 $$\frac{\partial u_{ex}}{\partial x}=\frac{1}{2A}((y_2-y_3)(u_{1x}-u_{3x})-(y_1-y_3)(u_{2x}-u_{3x}))$$
+
 $$\frac{\partial u_{ex}}{\partial y}=\frac{1}{2A}(-(x_2-x_3)(u_{1x}-u_{3x})+(x_1-x_3)(u_{2x}-u_{3x}))$$
 
-Great! Now we do everything again for $u_{ey}$. I'll skip over the borning stuff; the result is:
+Great! Now we do everything again for $u_{ey}$. I'll skip over the boning stuff; the result is:
 
 $$\frac{\partial u_{ey}}{\partial x}=\frac{1}{2A}((y_2-y_3)(u_{1y}-u_{3y})-(y_1-y_3)(u_{2y}-u_{3y}))$$
+
 $$\frac{\partial u_{ey}}{\partial y}=\frac{1}{2A}(-(x_2-x_3)(u_{1y}-u_{3y})+(x_1-x_3)(u_{2y}-u_{3y}))$$
 
 Finally, our original strain matrix becomes:
@@ -469,6 +480,7 @@ $$
 \frac{\partial u_{ex}}{\partial x}+\frac{\partial u_{ey}}{\partial x}
 \end{bmatrix}
 $$
+
 $$
 \epsilon =
 \frac{1}{2A}
@@ -498,6 +510,9 @@ u_{3x}\\
 u_{3y}\\
 \end{bmatrix}
 $$
+
+> Where $x_{ij} = (x_i-x_j)$ and $y_{ij} = (y_i-y_j)$ for simplicity
+
 
 We'll label these two matrices as...
 
@@ -554,7 +569,7 @@ The element stiffness matrix, for each element, is given as:
 
 $$k_e=B^TDB\ t\ A$$
 
-Thus, we need to find $B, D, t$ and $ A$. We can find $B$ and $D$ from the expressions we derived in the previous chapter, i.e.;
+Thus, we need to find $B, D, t$ and $A$. We can find $B$ and $D$ from the expressions we derived in the previous chapter, i.e.:
 
 $$
 D= \frac{E}{1-v^2}
@@ -587,9 +602,11 @@ Using [nalgebra](https://docs.rs/nalgebra/latest/nalgebra/), we can create a sti
 
 ### Building the Total Stiffness Matrix
 
-Each element stiffness matrix is square. The correspond to:
+Each element stiffness matrix is square. The rows and columns correspond to pairs of nodal displacements:
 
 ![](media/matrix-correspondence.png)
+
+> Notice how there is a stiffness between every two nodes?
 
 
 The example stiffness matrix above would correspond to the stiffness matrix for an element with nodes 1, 2, and 3 because it defines a stiffness at each of these nodes.
@@ -638,7 +655,7 @@ u_{3y}\\
 \end{bmatrix}
 $$
 
-Notice how each node appears twice? It's $0^{th}$ index is its x-axis, and the $1^{st}$ index is the y axis. This is why we increment the column index by one, then the row index by one, then both by one; we're adding the permutations that include the y-axis.
+Notice how each node appears twice? It's $0^{th}$ index is its x-axis, and the $1^{st}$ index is the y axis. This is why we increment the column index by one, then the row index by one, then both by one; we do this to add the pair for both x axes, then a mixture of x and y axes, then for both y axes.
 
 ### Set up the Finite Element Equation
 
