@@ -186,8 +186,6 @@ $$y=N_1y_1+N_2y_2+N_3y_3=(y_1-y_3)\xi+(y_2-y_3)\eta+y_3$$
 This will allow us to do some cool stuff in a moment—hang in there.
 
 
-
-
 ### Setting up our Problem
 
 Finding the potential energy in a spring element is pretty simple; however, the process becomes a lot more complex for 2D elements. We use the same idea of integrating the force over displacement, as we did for the spring, for the plane as well. Instead of looking the force, we'll look at the stress $\sigma$, and instead of looking at the displacement, we'll look at the strain $\epsilon$. Thus, over the volume of a triangular slab, we can say:
@@ -200,7 +198,19 @@ $$ PE = \frac12 \iint_A \epsilon ^T \sigma\ t\ dA $$
 
 Remember, we're working in 2D, so $\sigma$ and $\epsilon$ are both matrices:
 
-$$\sigma=\begin{bmatrix}\sigma_x\\\sigma_y\\\tau_{xy}\end{bmatrix}, \ \epsilon = \begin{bmatrix}\sigma_x\\\sigma_y\\\gamma_{xy}\end{bmatrix}$$
+$$\sigma=
+\begin{bmatrix}
+\sigma_x\\ 
+\sigma_y\\ 
+\tau_{xy}
+\end{bmatrix},
+\ \epsilon = 
+\begin{bmatrix}
+\sigma_x\\
+\sigma_y\\
+\gamma_{xy}
+\end{bmatrix}
+$$
 
 Our goal is to define stress and strain so that we can apply the Principle of MPE to create a stiffness matrix for our problem. Once we have the stiffness matrix, we solve the system:
 
@@ -579,19 +589,8 @@ Using [nalgebra](https://docs.rs/nalgebra/latest/nalgebra/), we can create a sti
 
 Each element stiffness matrix is square. The correspond to:
 
-$\begin{bmatrix} u_{1x} & u_{1y} & u_{2x} & u_{2y} & u_{3x} & u_{3y} \end{bmatrix}$
+![](media/matrix-correspondence.png)
 
-$\begin{bmatrix}
-k_{11} & k_{12} & k_{13} & k_{14} & k_{15} & k_{16} \\
-k_{21} & k_{22} & k_{23} & k_{24} & k_{25} & k_{26} \\
-k_{31} & k_{32} & k_{33} & k_{34} & k_{35} & k_{36} \\
-k_{41} & k_{42} & k_{43} & k_{44} & k_{45} & k_{46} \\
-k_{51} & k_{52} & k_{53} & k_{54} & k_{55} & k_{56} \\
-k_{61} & k_{62} & k_{63} & k_{64} & k_{65} & k_{66} \\
-\end{bmatrix}\begin{bmatrix} u_{1x} \\ u_{1y} \\ u_{2x} \\ u_{2y} \\ u_{3x} \\ u_{3y} \end{bmatrix}$
-
-
-(I apologize if the formatting is misaligned)
 
 The example stiffness matrix above would correspond to the stiffness matrix for an element with nodes 1, 2, and 3 because it defines a stiffness at each of these nodes.
 
