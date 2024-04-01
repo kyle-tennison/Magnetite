@@ -228,6 +228,7 @@ fn build_known_unknown_matrices(
         local_row += 1;
     }
 
+    known_matrix *= -1.0;
     (known_matrix, unknown_matrix)
 }
 
