@@ -241,8 +241,11 @@ $$ \sigma_x=\frac{E}{1-v^2} (\epsilon_x+v \epsilon_y)$$
 $$ \sigma_y=\frac{E}{1-v^2} (\epsilon_y+v \epsilon_x)$$
 
 Lastly, we can rearrange ...
+
 $$\gamma_{xy}=\frac{2(1+v)}{E}\tau_{xy}$$
+
 ... to solve for $\tau_{xy}$:
+
 $$ \tau_{xy} = \frac{E}{2(1+v)}\gamma_{xy} $$
 
 Phew! That's a lot. Let's clean this up into one nice vector:
@@ -349,17 +352,17 @@ $$
 \end{bmatrix}
 $$
 
-Now, we can take the partial derivatives of the [shape functions](#shape-func) we derived for triangular elements. This yields the following:
+Now, we can take the partial derivatives of the shape functions we derived for triangular elements. This yields the following:
 
 $$
-\frac{\partial x}{\partial \xi}=x_1-x_3,\ 
-\frac{\partial x}{\partial \eta}=x_2-x_3,\ 
-\frac{\partial x}{\partial \xi}=y_1-y_3,\ 
+\frac{\partial x}{\partial \xi}=x_1-x_3, 
+\frac{\partial x}{\partial \eta}=x_2-x_3, 
+\frac{\partial x}{\partial \xi}=y_1-y_3, 
 \frac{\partial x}{\partial \eta}=y21-y_3
-
 $$
 
 Substituting these values into the matrix above, we can say:
+
 $$
 \begin{bmatrix}
 \frac{\partial u_{ex}}{\partial x}\\\\
@@ -388,6 +391,7 @@ x_2-x_3 & y_2-y_3
 \end{bmatrix}$$
 
 Now, our equation becomes:
+
 $$
 \begin{bmatrix}
 \frac{\partial u_{ex}}{\partial x}\\\\
@@ -541,6 +545,7 @@ The element stiffness matrix, for each element, is given as:
 $$k_e=B^TDB\ t\ A$$
 
 Thus, we need to find $B, D, t$ and $ A$. We can find $B$ and $D$ from the expressions we derived in the previous chapter, i.e.;
+
 $$
 D= \frac{E}{1-v^2}
 \begin{bmatrix}
@@ -622,6 +627,7 @@ for (stiffness_mat, element) in std::iter::zip(element_stiffness_matrices, eleme
 We iterate through each element `element` and it's corresponding local stiffness matrix `stiffness_mat`. Then, we iterate over the array of nodes that belong to the element; we do this twice to get every pair. Next, we calculate `global_row` and `global_col`; this will be location of the stiffness for the two nodes in the total stiffness matrix. We do the same thing for `local_row` and `local_col` to find the location of the stiffness in the local stiffness matrix.
 
 In the derivation section, you might have realized how the vector $q$ is defined:
+
 $$
 q=\begin{bmatrix}
 u_{1x}\\
@@ -632,6 +638,7 @@ u_{3x}\\
 u_{3y}\\
 \end{bmatrix}
 $$
+
 Notice how each node appears twice? It's $0^{th}$ index is its x-axis, and the $1^{st}$ index is the y axis. This is why we increment the column index by one, then the row index by one, then both by one; we're adding the permutations that include the y-axis.
 
 ### Set up the Finite Element Equation
@@ -646,8 +653,7 @@ f_{2x} \\
 f_{2y} \\
 f_{3x} \\
 f_{3y}
-\end{bmatrix}
-=
+\end{bmatrix} =
 \begin{bmatrix}
 k_{11} & k_{12} & k_{13} & k_{14} & k_{15} & k_{16} \\
 k_{21} & k_{22} & k_{23} & k_{24} & k_{25} & k_{26} \\
@@ -668,15 +674,12 @@ $$
 
 However, we will almost always have unknown forces and unknown displacements. This makes things a bit tricker to solve. It turns out that, in a properly constrained model, whenever a force is known, the displacement is unknown; the same is true vice-versa. We can leverage this artifact by initially ignoring all unknown forces. For the purpose of this example, imagine $f_{2y}, f_{3x}$ and $f_{3y}$ are unknown. We'll ignore these from the system for now, which mean's we'll have to trim out stiffness matrix:
 
-
-
 $$
 \begin{bmatrix}
 f_{1x} \\
 f_{1y} \\
 f_{2x} 
-\end{bmatrix}
-=
+\end{bmatrix} =
 \begin{bmatrix}
 k_{11} & k_{12} & k_{13} & k_{14} & k_{15} & k_{16} \\
 k_{21} & k_{22} & k_{23} & k_{24} & k_{25} & k_{26} \\
@@ -701,8 +704,7 @@ $$
 f_{2y} \\
 f_{3x} \\
 f_{3y}
-\end{bmatrix}
-=
+\end{bmatrix} =
 \begin{bmatrix}
 k_{41} & k_{42} & k_{43} & k_{44} & k_{45} & k_{46} \\
 k_{51} & k_{52} & k_{53} & k_{54} & k_{55} & k_{56} \\
