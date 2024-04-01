@@ -184,7 +184,7 @@ By default, the region is $\mathbb{R}^2$; we restrict it with:
 - `y_target_min`
 - `y_target_max`
 
-We are effectively saying: $R=\{(x,y)\in{\mathbb{R}^2|x_{target\_min} ≤x≤ x_{target\_max}, y_{target\_min} ≤y≤ y_{target\_max}}\}$
+We are effectively saying: $R=\{(x,y)\in{\mathbb{R}^2|x_{target-min} ≤x≤ x_{target-max}, y_{target-min} ≤y≤ y_{target-max}}\}$
 
 > Values left undefined will default to $\infty$.
 
