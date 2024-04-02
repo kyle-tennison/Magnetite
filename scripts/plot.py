@@ -9,19 +9,22 @@ from matplotlib.patches import Polygon
 import numpy as np
 from dataclasses import dataclass
 
+
 @dataclass
 class Node:
-    x: float 
-    y: float 
+    x: float
+    y: float
     ux: float
     uy: float
+
 
 @dataclass
 class Element:
     n0: int
-    n1: int 
-    n2: int 
+    n1: int
+    n2: int
     stress: float
+
 
 def main():
 
@@ -40,7 +43,7 @@ def main():
         exit(1)
 
     nodes: list[Node] = []
-    with open(args.nodes_file, 'r') as f:
+    with open(args.nodes_file, "r") as f:
         headers = [i.strip() for i in f.readline().split(",")]
 
         for line in f.readlines():
@@ -59,7 +62,7 @@ def main():
             )
 
     elements: list[Element] = []
-    with open(args.elements_file, 'r') as f:
+    with open(args.elements_file, "r") as f:
         headers = [i.strip() for i in f.readline().split(",")]
 
         for line in f.readlines():
@@ -73,18 +76,16 @@ def main():
                     n0=int(fields[headers.index("n0")]),
                     n1=int(fields[headers.index("n1")]),
                     n2=int(fields[headers.index("n2")]),
-                    stress=float(fields[headers.index("stress")])
+                    stress=float(fields[headers.index("stress")]),
                 )
             )
 
-
     plt.style.use("seaborn-v0_8")
-    fig, axs = plt.subplots(2)
+    fig, axs = plt.subplots(1, 2)
     fig.suptitle("Simulation Results")
 
     solved_plot = axs[0]
     initial_plot = axs[1]
-
 
     triangles = np.empty((len(elements), 3, 2))
 
@@ -132,11 +133,10 @@ def main():
         triangles[i, 1] = (n1.x + n1.ux, n1.y + n1.uy)
         triangles[i, 2] = (n2.x + n2.ux, n2.y + n2.uy)
 
-
         if max_stress == min_stress:
             relative_stress = 0
         else:
-            relative_stress = (element.stress - min_stress) / (max_stress-min_stress)
+            relative_stress = (element.stress - min_stress) / (max_stress - min_stress)
 
         color = "#{:02x}0000".format(int(255 * relative_stress))
         triangle_colormap.append(color)
@@ -168,8 +168,12 @@ def main():
         solved_plot.set_ylim(initial_plot.get_ylim())
 
     fig.tight_layout(pad=2.0)
+    solved_plot.set_aspect("equal", adjustable="box")
+    initial_plot.set_aspect("equal", adjustable="box")
     plt.show()
 
+    os.remove(args.nodes_file)
+    os.remove(args.elements_file)
 
 
 if __name__ == "__main__":
