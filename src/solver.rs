@@ -3,9 +3,136 @@ use crate::{
     error::MagnetiteError,
 };
 use indicatif::ProgressBar;
-use nalgebra::{matrix, Cholesky, DMatrix, DVector, SMatrix};
+use nalgebra::{matrix, DMatrix, DVector, SMatrix};
+
+use argmin::{
+    core::{
+        observers::{Observe, ObserverMode},
+        ArgminFloat, Error, Executor, Operator, State, KV,
+    },
+    solver::conjugategradient::ConjugateGradient,
+};
 
 pub const DOF: usize = 2;
+pub const MAX_CG_ITER: u64 = 1e7 as u64;
+pub const TARGET_CG_COST: f64 = 1e-4 as f64;
+
+
+/// Runs multiplication for Conjugate Gradient Solver
+struct ConjugateGradientOperator<'a> {
+    a: &'a DMatrix<f64>, // TODO: Use a sparse matrix to speed up multiplication times
+}
+
+impl<'a> Operator for ConjugateGradientOperator<'a> {
+    type Param = Vec<f64>;
+    type Output = Vec<f64>;
+
+    fn apply(&self, x: &Self::Param) -> Result<Self::Output, argmin::core::Error> {
+        Ok((self.a * DVector::from_vec(x.to_vec()))
+            .data
+            .as_vec()
+            .clone())
+    }
+}
+
+/// Observer bar for argmin solver
+struct ConjugateGradientObserverBar {
+    bar: ProgressBar,
+    final_mag: f64,
+}
+
+impl ConjugateGradientObserverBar {
+    fn new() -> ConjugateGradientObserverBar {
+        ConjugateGradientObserverBar {
+            bar: ProgressBar::new(1000),
+            final_mag: TARGET_CG_COST.log10().floor(),
+        }
+    }
+
+    fn argmin_float_to_f64<F: ArgminFloat>(&self, value: F) -> Option<f64> {
+        // TODO: There absolutely should be a way to extract the value
+        // from a ArgminFloat instance that doesn't need this
+        match format!("{:?}", value).parse() {
+            Ok(n) => Some(n),
+            Err(_) => None,
+        }
+    }
+}
+
+impl<I> Observe<I> for ConjugateGradientObserverBar
+where
+    I: State,
+{
+    fn observe_init(&mut self, _name: &str, _state: &I, _kv: &KV) -> Result<(), Error> {
+        Ok(())
+    }
+
+    fn observe_iter(&mut self, state: &I, _kv: &KV) -> Result<(), Error> {
+        let cost = match self.argmin_float_to_f64(state.get_cost()) {
+            Some(c) => c,
+            None => return Ok(()), // skip if we can't parse
+        };
+        let cost_mag = cost.log10().floor();
+        let progress = (1000. / f64::sqrt(cost_mag - self.final_mag)) as u64;
+        self.bar.set_position(progress);
+
+        Ok(())
+    }
+}
+
+/// Solves a system of equations using the conjugate gradient method.
+/// 
+/// This function returns an approximation for x in `Ax=b`
+/// 
+/// # Arguments
+/// * `a` - A square positive definite matrix
+/// * `b` - A vector of the solutions to the system
+/// 
+/// # Returns
+/// A DVector that represents `x` from the system
+fn run_conjugate_gradient(
+    a: &DMatrix<f64>,
+    b: &DVector<f64>,
+) -> Result<DVector<f64>, MagnetiteError> {
+
+
+    let b_flat: Vec<f64> = b.iter().map(|f| *f).collect();
+    let solver: ConjugateGradient<_, f64> = ConjugateGradient::new(b_flat);
+    let initial_guess: Vec<f64> = vec![0.0; b.nrows()];
+
+    let operator = ConjugateGradientOperator { a };
+    let observer = ConjugateGradientObserverBar::new();
+
+    // Run solver
+    let res = match Executor::new(operator, solver)
+        .configure(|state| {
+            state
+                .param(initial_guess)
+                .max_iters(MAX_CG_ITER)
+                .target_cost(TARGET_CG_COST)
+        })
+        .add_observer(observer, ObserverMode::NewBest)
+        .run()
+    {
+        Ok(r) => r,
+        Err(err) => {
+            return Err(MagnetiteError::Solver(format!(
+                "Conjugate Gradient error: {err}"
+            )))
+        }
+    };
+
+    let best_param = match &res.state().best_param {
+        Some(vec) => DVector::from_vec(vec.clone()),
+        None => {
+            return Err(MagnetiteError::Solver(
+                "Conjugate Gradient could not produce best parameter".to_owned(),
+            ))
+        }
+    };
+
+    Ok(best_param)
+}
 
 /// Calculates the area of the element
 ///
@@ -259,13 +386,15 @@ fn solve(
     }
 
     // Solve for nodal displacements
-    
-    
+
     let start = std::time::Instant::now();
-    println!("info: decomposing with cholesky decomposition...");
-    let cholesky = Cholesky::new_unchecked(unknown_matrix);
-    println!("info: solving system...");
-    let displacement_solution = cholesky.solve(&known_matrix_summed);
+
+    let displacement_solution = run_conjugate_gradient(&unknown_matrix, &known_matrix_summed)?;
+
+    // println!("info: decomposing with cholesky decomposition...");
+    // let cholesky = Cholesky::new_unchecked(unknown_matrix);
+    // println!("info: solving system...");
+    // let displacement_solution = cholesky.solve(&known_matrix_summed);
 
     let elapsed = (std::time::Instant::now() - start).as_secs_f32();
     println!("info: solved system in {:.3} seconds", elapsed);
