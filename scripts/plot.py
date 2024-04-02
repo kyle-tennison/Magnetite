@@ -79,7 +79,7 @@ def main():
 
 
     plt.style.use("seaborn-v0_8")
-    fig, axs = plt.subplots(2)
+    fig, axs = plt.subplots(1, 2)
     fig.suptitle("Simulation Results")
 
     solved_plot = axs[0]
@@ -168,6 +168,8 @@ def main():
         solved_plot.set_ylim(initial_plot.get_ylim())
 
     fig.tight_layout(pad=2.0)
+    solved_plot.set_aspect('equal', adjustable='box')
+    initial_plot.set_aspect('equal', adjustable='box')
     plt.show()
 
 
