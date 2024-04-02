@@ -78,6 +78,11 @@ where
 
         Ok(())
     }
+
+    fn observe_final(&mut self, _state: &I) -> Result<(), Error> {
+        self.bar.finish();
+        Ok(())
+    }
 }
 
 /// Solves a system of equations using the conjugate gradient method.
@@ -386,15 +391,10 @@ fn solve(
     }
 
     // Solve for nodal displacements
-
     let start = std::time::Instant::now();
 
+    println!("info: solving...");
     let displacement_solution = run_conjugate_gradient(&unknown_matrix, &known_matrix_summed)?;
-
-    // println!("info: decomposing with cholesky decomposition...");
-    // let cholesky = Cholesky::new_unchecked(unknown_matrix);
-    // println!("info: solving system...");
-    // let displacement_solution = cholesky.solve(&known_matrix_summed);
 
     let elapsed = (std::time::Instant::now() - start).as_secs_f32();
     println!("info: solved system in {:.3} seconds", elapsed);
