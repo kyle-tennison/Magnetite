@@ -10,7 +10,7 @@ March 29, 2024
 
 */
 
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use error::MagnetiteError;
 mod datatypes;
 mod error;
@@ -21,14 +21,23 @@ mod solver;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    #[arg(short, long, index = 1, value_name = "FILE")]
+    #[arg(
+        short,
+        long,
+        index = 1,
+        value_name = "FILE",
+        help = "Input Json with boundary conditions"
+    )]
     input_file: String,
 
-    #[arg(short, long, index=2, value_name="FILE", num_args=0..)]
+    #[arg(short, long, index=2, required=true, value_name="FILE", num_args=0.., help="Geometry SVG or CSVs")]
     geometry_files: Vec<String>,
 
-    #[arg(short, long, default_value = "coolwarm")]
+    #[arg(short, long, default_value = "coolwarm", help = "cmap for python plot")]
     cmap: String,
+
+    #[arg(short, long, help = "skip python plot")]
+    skip: bool,
 }
 
 fn main() {
@@ -58,7 +67,10 @@ fn entry() -> Result<(), MagnetiteError> {
     let nodes_output = "nodes.csv";
     let elements_output = "elements.csv";
     post_processor::csv_output(&elements, &nodes, nodes_output, elements_output)?;
-    post_processor::pyplot(nodes_output, elements_output, &args.cmap)?;
+
+    if !args.skip {
+        post_processor::pyplot(nodes_output, elements_output, &args.cmap)?;
+    }
 
     Ok(())
 }
