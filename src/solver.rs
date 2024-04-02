@@ -40,7 +40,7 @@ impl<'a> Operator for ConjugateGradientOperator<'a> {
 struct ConjugateGradientObserverBar {
     bar: ProgressBar,
     final_mag: f64,
-    done_solve: bool
+    done_solve: bool,
 }
 
 impl ConjugateGradientObserverBar {
@@ -48,7 +48,7 @@ impl ConjugateGradientObserverBar {
         ConjugateGradientObserverBar {
             bar: ProgressBar::new(SOLVE_BAR_TOTAL),
             final_mag: TARGET_CG_COST.log10().floor(),
-            done_solve: false
+            done_solve: false,
         }
     }
 
@@ -87,7 +87,7 @@ where
             self.bar.set_position(progress);
         }
 
-        if !self.done_solve{
+        if !self.done_solve {
             self.bar.set_position(progress);
         }
 
@@ -98,7 +98,10 @@ where
         self.bar.finish();
         let iterations = state.get_iter();
 
-        println!("info: finished conjugate gradient approximation in {} iterations", iterations);
+        println!(
+            "info: finished conjugate gradient approximation in {} iterations",
+            iterations
+        );
         Ok(())
     }
 }
@@ -117,14 +120,13 @@ fn run_conjugate_gradient(
     a: &DMatrix<f64>,
     b: &DVector<f64>,
 ) -> Result<DVector<f64>, MagnetiteError> {
-
     // Convert a to a sparse matrix
     println!("info: converting into sparse matrix...");
     let n = a.nrows();
     let mut a_sparse_coo: CooMatrix<f64> = CooMatrix::new(n, n);
 
     for row in 0..n {
-        for col in 0..n{
+        for col in 0..n {
             let k = a[(row, col)];
 
             if k != 0.0 {
@@ -133,7 +135,7 @@ fn run_conjugate_gradient(
         }
     }
     let a_sparse_csr: CsrMatrix<f64> = CsrMatrix::from(&a_sparse_coo);
-    
+
     // Run Conjugate Gradient Solver
     println!("info: running conjugate gradient solver:");
     let b_flat: Vec<f64> = b.iter().map(|f| *f).collect();
@@ -321,7 +323,9 @@ fn build_total_stiffness_matrix(
             }
         }
     }
-    bar.finish_with_message(format!("info: successfully assembled total stiffness matrix\n"));
+    bar.finish_with_message(format!(
+        "info: successfully assembled total stiffness matrix\n"
+    ));
 
     total_stiffness_matrix
 }
@@ -412,9 +416,11 @@ fn solve(
     println!("info: setting up system...");
 
     // Assemble column Matrixes
+    println!("info: collecting nodal forces and displacements");
     let (mut nodal_forces, mut nodal_displacements) = build_col_vecs(nodes);
 
     // Setup equation for unknown displacements
+    println!("info: partitioning total stiffness matrix");
     let (known_matrix, unknown_matrix) =
         build_known_unknown_matrices(&nodal_forces, &nodal_displacements, total_stiffness_matrix);
 

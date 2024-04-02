@@ -77,11 +77,6 @@ fn parse_svg(svg_file: &str, min_element_length: f32) -> Result<Vec<Vec<Vertex>>
 
             // ensure that vertex is not already in points
             if points.contains(&vertex) {
-                println!(
-                    "warning [mesh]: duplicate point at {:?} in polyline id {:?}",
-                    &vertex,
-                    polyline.id()
-                );
                 continue;
             }
             // ensure vertex is proper distance away from last point
@@ -238,7 +233,7 @@ fn parse_svg(svg_file: &str, min_element_length: f32) -> Result<Vec<Vec<Vertex>>
     }
 
     if skipped_vertices > 0 {
-        println!("warning [mesh]: skipped {} vertices", skipped_vertices);
+        println!("info: skipped {} vertices during meshing", skipped_vertices);
     }
 
     if vertex_containers[0].is_empty() {
