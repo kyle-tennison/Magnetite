@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from matplotlib.patches import Polygon
 import numpy as np
 from dataclasses import dataclass
-
+import matplotlib.colors as mcolors
 
 @dataclass
 class Node:
@@ -32,6 +32,7 @@ def main():
 
     parser.add_argument("nodes_file", help="The nodes csv file")
     parser.add_argument("elements_file", help="The elements csv file")
+    parser.add_argument("cmap", help="The cmap to display stress with")
 
     args = parser.parse_args()
 
@@ -142,13 +143,13 @@ def main():
         triangles[i, 1] = (n1.x + n1.ux, n1.y + n1.uy)
         triangles[i, 2] = (n2.x + n2.ux, n2.y + n2.uy)
 
-        if max_stress == min_stress:
-            relative_stress = 0
-        else:
-            relative_stress = (element.stress - min_stress) / (max_stress - min_stress)
+        cmap = plt.get_cmap(args.cmap)
+        norm = mcolors.Normalize(vmin=min_stress, vmax=max_stress)
+        stress_normalized = norm(element.stress)
+        color_rgba = cmap(stress_normalized)
+        color_hex = mcolors.rgb2hex(color_rgba)
 
-        color = "#{:02x}0000".format(int(255 * relative_stress))
-        triangle_colormap.append(color)
+        triangle_colormap.append(color_hex)
 
     for i, triangle in enumerate(triangles):
 

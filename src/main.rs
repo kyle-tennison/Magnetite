@@ -10,13 +10,28 @@ March 29, 2024
 
 */
 
+use clap::Parser;
 use error::MagnetiteError;
-use std::env;
 mod datatypes;
 mod error;
 mod mesher;
 mod post_processor;
 mod solver;
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+
+    #[arg(short, long, index=1, value_name="FILE")]
+    input_file: String,
+
+    #[arg(short, long, index=2, value_name="FILE", num_args=0..)]
+    geometry_files: Vec<String>,
+
+    #[arg(short, long, default_value="coolwarm")]
+    cmap: String,
+
+}
 
 fn main() {
     match entry() {
@@ -30,17 +45,13 @@ fn main() {
 
 /// Entry point to simulator
 fn entry() -> Result<(), MagnetiteError> {
-    let args: Vec<String> = env::args().collect();
+    let args = Args::parse();
 
-    if args.len() < 3 {
-        println!("usage: magnetite <input_json> <geometry_outer> <geometry_inner ...>");
-        std::process::exit(1)
-    }
 
     // Parse input files
     let (mut nodes, mut elements, model_metadata) = mesher::run(
-        args[2..].iter().map(|f| f.as_str()).collect(),
-        args[1].as_str(),
+        args.geometry_files.iter().map(|f| f.as_str()).collect(),
+        &args.input_file
     )?;
 
     // Run simulation
@@ -50,7 +61,7 @@ fn entry() -> Result<(), MagnetiteError> {
     let nodes_output = "nodes.csv";
     let elements_output = "elements.csv";
     post_processor::csv_output(&elements, &nodes, nodes_output, elements_output)?;
-    post_processor::pyplot(nodes_output, elements_output)?;
+    post_processor::pyplot(nodes_output, elements_output, &args.cmap)?;
 
     Ok(())
 }
