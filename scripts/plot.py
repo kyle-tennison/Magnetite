@@ -172,6 +172,9 @@ def main():
     initial_plot.set_aspect("equal", adjustable="box")
     plt.show()
 
+    os.remove(args.nodes_file)
+    os.remove(args.elements_file)
+
 
 if __name__ == "__main__":
     main()

@@ -17,7 +17,6 @@ pub const DOF: usize = 2;
 pub const MAX_CG_ITER: u64 = 1e7 as u64;
 pub const TARGET_CG_COST: f64 = 1e-4 as f64;
 
-
 /// Runs multiplication for Conjugate Gradient Solver
 struct ConjugateGradientOperator<'a> {
     a: &'a DMatrix<f64>, // TODO: Use a sparse matrix to speed up multiplication times
@@ -86,21 +85,19 @@ where
 }
 
 /// Solves a system of equations using the conjugate gradient method.
-/// 
+///
 /// This function returns an approximation for x in `Ax=b`
-/// 
+///
 /// # Arguments
 /// * `a` - A square positive definite matrix
 /// * `b` - A vector of the solutions to the system
-/// 
+///
 /// # Returns
 /// A DVector that represents `x` from the system
 fn run_conjugate_gradient(
     a: &DMatrix<f64>,
     b: &DVector<f64>,
 ) -> Result<DVector<f64>, MagnetiteError> {
-
-
     let b_flat: Vec<f64> = b.iter().map(|f| *f).collect();
     let solver: ConjugateGradient<_, f64> = ConjugateGradient::new(b_flat);
     let initial_guess: Vec<f64> = vec![0.0; b.nrows()];
