@@ -1,4 +1,7 @@
-use std::io::Write;
+use std::{
+    io::{BufWriter, Write},
+    process::ExitStatus,
+};
 
 use crate::{
     datatypes::{Element, Node},
@@ -84,7 +87,7 @@ pub fn csv_output(
 /// # Arguments
 /// * `nodes_csv` - The filepath to the nodes csv output
 /// * `elements_csv` - The filepath to the elements csv output
-pub fn pyplot(nodes_csv: &str, elements_csv: &str) -> Result<(), MagnetiteError> {
+pub fn pyplot(nodes_csv: &str, elements_csv: &str, cmap: &str) -> Result<(), MagnetiteError> {
     // resolve plotter path
     let current_dir = std::env::current_exe().unwrap();
     let repo_dir = current_dir
@@ -101,12 +104,20 @@ pub fn pyplot(nodes_csv: &str, elements_csv: &str) -> Result<(), MagnetiteError>
         .unwrap();
 
     println!("info: plotting in python...");
-    let _ = std::process::Command::new("python")
+    let res = std::process::Command::new("python")
         .arg(plotter_path)
         .arg(nodes_csv)
         .arg(elements_csv)
+        .arg(cmap)
         .output()
         .unwrap();
+
+    if !res.status.success() {
+        return Err(MagnetiteError::PostProcessor(format!(
+            "error: python plotter raised error:\n\n{}",
+            String::from_utf8_lossy(res.stderr.iter().as_slice())
+        )));
+    }
 
     Ok(())
 }

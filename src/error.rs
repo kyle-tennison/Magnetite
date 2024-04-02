@@ -5,6 +5,7 @@ pub enum MagnetiteError {
     Input(String),
     Mesher(String),
     Solver(String),
+    PostProcessor(String),
 }
 
 impl Display for MagnetiteError {
@@ -13,6 +14,7 @@ impl Display for MagnetiteError {
             MagnetiteError::Input(v) => ("Input", v),
             MagnetiteError::Mesher(v) => ("Mesher", v),
             MagnetiteError::Solver(v) => ("Solver", v),
+            MagnetiteError::PostProcessor(v) => ("Post Processor", v),
         };
 
         write!(f, "{} error: {}", err_name, value)
