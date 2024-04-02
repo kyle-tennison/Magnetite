@@ -32,7 +32,7 @@ My personal favorite law in physics is Hooke's law. It says:
 
 $$F=-kx$$
 
-$F$ is force, $k$ is stiffness, and $x$ is displacmement. Put simply, this states that the force that a spring exerts is proportional to the distance it's compressed. 
+$F$ is force, $k$ is stiffness, and $x$ is displacmement. Put simply, this states that the force that a spring exerts is proportional to the distance it's compressed.
 
 Ok, so what's the big deal? Spring's alone aren't that interesting, but what's cool is that _everything is a spring_. We're taught that the reason why we don't fall through the floor is due to "the normal force" — and this is true! But what _is_ the normal force? It's just Hooke's law! When you walk down the road, you compress it, just enough for it to respond with the force to match your weight. As with everything, there's cavitates to this, but this is tue for linear-elastic systems.
 
@@ -56,7 +56,7 @@ $$W=k\int\limits_0^qx\ dx=\frac12kq^2$$
 
 If we were to consider $x=0$ the equilibrium point of the spring, we can state that, for any compression, the potential energy in a spring is given by:
 
-$$ KE_{sp}=\frac12kq^2 $$
+$$ KE\_{sp}=\frac12kq^2 $$
 
 ... where $k$ is the spring stiffness and $q$ is the displacement.
 
@@ -89,26 +89,25 @@ As stated in the principle of MPE, the potential energy for each $q$ should be a
 
 $$
 \begin{bmatrix}
-F_1\\ 
-0\\ 
+F_1\\
+0\\
 F_3\\
 \end{bmatrix}=
 \begin{bmatrix}
-k_1 & -k_1 & 0 \\ 
+k_1 & -k_1 & 0 \\
 -k_1 & k_1+k_2+k_3 & -k_3 \\
 0 & -k_3 & k_3+k_4
 \end{bmatrix}
 \begin{bmatrix}
 q_1 \\
-q_2\\ 
+q_2\\
 q_3
 \end{bmatrix}
 $$
 
-
 We now have a system we're able to solve. This derivation is for a 1D spring system, but we can follow the same steps to arrive at a stiffness matrix for planar elements.
 
-1. Obtain an equation potential energy 
+1. Obtain an equation potential energy
 2. Apply the Principle of MPE
 3. Factor out displacements to create a stiffness matrix
 4. Setup the equation in the form $\{F\}=[K]\{u\}$
@@ -119,17 +118,19 @@ Before we get started working with 2D triangular elements, we'll need to conside
 $$\sigma = E \epsilon$$
 
 where:
+
 - $\sigma$ is stress
 - $\epsilon$ is strain
 - $E$ is the material elasticity (Young's Modulus)
 
-Let's see how this changes when we move to 2D. 
+Let's see how this changes when we move to 2D.
 
 First, let's look at a stress element in 2D:
 
 ![An image of a 2D stress element](https://www.efunda.com/formulae/solid_mechanics/mat_mechanics/images/PlanStress1.gif)
 
 The symbols represent:
+
 - $\sigma$ – normal stress
 - $\tau$ – shear stress
 
@@ -137,15 +138,15 @@ We'll also need to look at the [poisson ratio](https://en.wikipedia.org/wiki/Poi
 
 ![An image showing the Poisson effect](https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/PoissonRatio.svg/600px-PoissonRatio.svg.png)
 
-
 When the green block is stretched, it becomes thinner in its other axes; the magnitude of this effect is described by poisson ratio.
 
 Now, we have the following definitions for the properties that define a 2D stress element:
+
 - Axial Stress ($\sigma$)
 - Axial Strain ($\epsilon$)
 - Shear Stress ($\tau$)
-- Shear Strain ($\gamma$) (also not shown, [described here](https://en.wikipedia.org/wiki/Strain_(mechanics)#Shear_strain))
-- Young's Modulus ($E$) 
+- Shear Strain ($\gamma$) (also not shown, [described here](<https://en.wikipedia.org/wiki/Strain_(mechanics)#Shear_strain>))
+- Young's Modulus ($E$)
 - Poisson Ratio ($v$)
 
 ### Triangular Elements
@@ -154,25 +155,27 @@ Now, we have the following definitions for the properties that define a 2D stres
 
 Triangles have three vertices, which we call nodes. Each node can deform in the $x$ and $y$ axes. We can represent the local displacement of a triangular element as the following column vector:
 
-$$u_e = 
+$$
+u_e =
 \begin{bmatrix}
-u_{1x} & 
+u_{1x} &
 u_{1y} &
 u_{2x} &
 u_{2y} &
 u_{3x} &
 u_{3y}
-\end{bmatrix}^T$$
+\end{bmatrix}^T
+$$
 
 Now, let's consider what happens when the triangle deforms. There's a few ways to approach this problem, but the simplest way is to interpolate stress over the area of the triangle. This approach sacrifices accuracy, but its a reasonable approximation for small displacements. To apply this theory, we split the element into three sub-triangles with a common vertex at the interior point of the element:
 
 ![](media/triangle-split.png)
+
 > From University of New Mexico
 
 Considering that the area of the element is the sum of the areas $A_1, A_2, A_3$, we can create the following shape functions:
 
 $$N_1=\frac{A_1}{A},N_2=\frac{A_2}{A},N_3=\frac{A_3}{A}$$
-
 
 Because $N_1, N_2, N_3$ are ratios of $A$, the sum of $N_1+N_2+N_3=1$. Thus, if we let $\xi=N_1$ and $\eta=N_2$, we can solve for the other item, $N_3 = 1- \xi - \eta$.
 
@@ -188,7 +191,6 @@ $$y=N_1y_1+N_2y_2+N_3y_3=(y_1-y_3)\xi+(y_2-y_3)\eta+y_3$$
 
 This will allow us to do some cool stuff in a moment—hang in there.
 
-
 ### Setting up our Problem
 
 Finding the potential energy in a spring element is pretty simple; however, the process becomes a lot more complex for 2D elements. We use the same idea of integrating the force over displacement, as we did for the spring, for the plane as well. Instead of looking the force, we'll look at the stress $\sigma$, and instead of looking at the displacement, we'll look at the strain $\epsilon$. Thus, over the volume of a triangular slab, we can say:
@@ -197,13 +199,14 @@ $$ PE = \frac 12 \iiint_V \epsilon^T \sigma\ dV $$
 
 Remember, we're working in 2D, so $\sigma$ and $\epsilon$ are both matrices:
 
-$$\sigma=
+$$
+\sigma=
 \begin{bmatrix}
-\sigma_x\\ 
-\sigma_y\\ 
+\sigma_x\\
+\sigma_y\\
 \tau_{xy}
 \end{bmatrix},
-\ \epsilon = 
+\ \epsilon =
 \begin{bmatrix}
 \sigma_x\\
 \sigma_y\\
@@ -220,6 +223,7 @@ Our goal is to define stress and strain so that we can apply the Principle of MP
 $$\{F\}=[K]\{U\}$$
 
 where ...
+
 - $\{F\}$ is a column vector of nodal forces
 - $[K]$ is a square, sparse stiffness matrix
 - $\{U\}$ is a column vector of nodal displacements
@@ -249,7 +253,6 @@ $$\epsilon_x=\frac{\sigma_x}{E}-v \frac{\sigma_y}{E}$$
 ... to get:
 $$E\epsilon_x=\sigma_x-v E\epsilon_y-v^2\sigma_x$$
 
-
 Now, it is possible to solve for $\sigma_x$, which then allows us to solve for $\sigma_y$. The solutions are:
 
 $$ \sigma_x=\frac{E}{1-v^2} (\epsilon_x+v \epsilon_y)$$
@@ -262,7 +265,7 @@ $$\gamma_{xy}=\frac{2(1+v)}{E}\tau_{xy}$$
 
 ... to solve for $\tau_{xy}$:
 
-$$ \tau_{xy} = \frac{E}{2(1+v)}\gamma_{xy} $$
+$$ \tau*{xy} = \frac{E}{2(1+v)}\gamma*{xy} $$
 
 Phew! That's a lot. Let's clean this up into one nice vector:
 
@@ -296,8 +299,6 @@ v & 1 & 0 \\\
 \end{bmatrix}
 $$
 
-
-
 ### Strain-Displacement Matrix
 
 Let's look back at our problem:
@@ -321,7 +322,6 @@ $$
 
 > Subscript e referes to the element as a whole, not a node.
 
-
 <a name="shape-func"></a> Recall the equations we derived for a triangular element:
 $$u_{ex}=(u_{1x}-u_{3x})\xi+(u_{2x}-u_{3x})\eta + u_{3x}$$
 $$u_{ey}=(u_{1y}-u_{3y})\xi+(u_{2y}-u_{3y})\eta + u_{3y}$$
@@ -339,7 +339,7 @@ This can be expressed in the following system:
 $$
 \begin{bmatrix}
 \frac{\partial u_{ex}}{\partial \xi} \\\\
-\frac{\partial u_{ex}}{\partial \eta} 
+\frac{\partial u_{ex}}{\partial \eta}
 \end{bmatrix}
 = \begin{bmatrix}
 \frac{\partial x}{\partial \xi} & \frac{\partial y}{\partial \xi}\\\\
@@ -364,16 +364,16 @@ $$
 \end{bmatrix}^{-1}
 \begin{bmatrix}
 \frac{\partial u_{ex}}{\partial \xi} \\\\
-\frac{\partial u_{ex}}{\partial \eta} 
+\frac{\partial u_{ex}}{\partial \eta}
 \end{bmatrix}
 $$
 
 Now, we can take the partial derivatives of the shape functions we derived for triangular elements. This yields the following:
 
 $$
-\frac{\partial x}{\partial \xi}=x_1-x_3, 
-\frac{\partial x}{\partial \eta}=x_2-x_3, 
-\frac{\partial x}{\partial \xi}=y_1-y_3, 
+\frac{\partial x}{\partial \xi}=x_1-x_3,
+\frac{\partial x}{\partial \eta}=x_2-x_3,
+\frac{\partial x}{\partial \xi}=y_1-y_3,
 \frac{\partial x}{\partial \eta}=y21-y_3
 $$
 
@@ -390,13 +390,14 @@ x_2-x_3 & y_2-y_3
 \end{bmatrix}^{-1}
 \begin{bmatrix}
 \frac{\partial u_{ex}}{\partial \xi} \\\\
-\frac{\partial u_{ex}}{\partial \eta} 
+\frac{\partial u_{ex}}{\partial \eta}
 \end{bmatrix}
 $$
 
 We're almost there! Let's get rid of the inverse on the second matrix. Notice that this matrix is actually the Jacobian of the multivariable displacement function. For this reason, we'll let...
 
-$$J =
+$$
+J =
 \begin{bmatrix}
 \frac{\partial x}{\partial \xi} & \frac{\partial y}{\partial \xi}\\\\
 \frac{\partial x}{\partial \eta} & \frac{\partial y}{\partial \eta}
@@ -404,7 +405,8 @@ $$J =
 \begin{bmatrix}
 x_1-x_3 & y_1-y_3 \\\\
 x_2-x_3 & y_2-y_3
-\end{bmatrix}$$
+\end{bmatrix}
+$$
 
 Now, our equation becomes:
 
@@ -416,16 +418,16 @@ $$
 J^{-1}
 \begin{bmatrix}
 \frac{\partial u_{ex}}{\partial \xi} \\\\
-\frac{\partial u_{ex}}{\partial \eta} 
+\frac{\partial u_{ex}}{\partial \eta}
 \end{bmatrix}=
 \frac{1}{det(J)}J
 \begin{bmatrix}
 \frac{\partial u_{ex}}{\partial \xi} \\\\
-\frac{\partial u_{ex}}{\partial \eta} 
+\frac{\partial u_{ex}}{\partial \eta}
 \end{bmatrix}
 $$
 
-There's one more trick we can apply here. It turns out that the area of a triangle can be defined as $A=\frac12|det(J)|$. Thus, we can replace the $det(J)$ term in the equation above with twice the area of the element, A. 
+There's one more trick we can apply here. It turns out that the area of a triangle can be defined as $A=\frac12|det(J)|$. Thus, we can replace the $det(J)$ term in the equation above with twice the area of the element, A.
 
 $$
 \begin{bmatrix}
@@ -436,7 +438,7 @@ $$
 J
 \begin{bmatrix}
 \frac{\partial u_{ex}}{\partial \xi} \\\\
-\frac{\partial u_{ex}}{\partial \eta} 
+\frac{\partial u_{ex}}{\partial \eta}
 \end{bmatrix}
 $$
 
@@ -457,7 +459,6 @@ $$\frac{\partial u_{ex}}{\partial \xi}=(u_{1x}-u_{3x})$$
 
 $$\frac{\partial u_{ex}}{\partial \eta}=(u_{2x}-u_{3x})$$
 
-
 Substituting this into the expression before yields:
 
 $$\frac{\partial u_{ex}}{\partial x}=\frac{1}{2A}((y_2-y_3)(u_{1x}-u_{3x})-(y_1-y_3)(u_{2x}-u_{3x}))$$
@@ -473,7 +474,7 @@ $$\frac{\partial u_{ey}}{\partial y}=\frac{1}{2A}(-(x_2-x_3)(u_{1y}-u_{3y})+(x_1
 Finally, our original strain matrix becomes:
 
 $$
-\epsilon = 
+\epsilon =
 \begin{bmatrix}
 \frac{\partial u_{ex}}{\partial x}\\\\
 \frac{\partial u_{ey}}{\partial x}\\\\
@@ -494,7 +495,7 @@ $$
 Which, (thankfully) simplifies down to:
 
 $$
-\epsilon = 
+\epsilon =
 \frac{1}{2A}
 \begin{bmatrix}
 y_{23} & 0 & y_{31} & 0 & y_{12} & 0 \\
@@ -513,14 +514,14 @@ $$
 
 > Where $x_{ij} = (x_i-x_j)$ and $y_{ij} = (y_i-y_j)$ for simplicity
 
-
 We'll label these two matrices as...
 
-$$B=\frac{1}{2A}\begin{bmatrix}
+$$
+B=\frac{1}{2A}\begin{bmatrix}
 y_{23} & 0 & y_{31} & 0 & y_{12} & 0 \\
 0 & x_{32} & 0 & x_{13} & 0 & x_{21} \\
 x_{32} & y_{23} & x_{13} & y_{31} & x_{21} & y_{12}
-\end{bmatrix},\ 
+\end{bmatrix},\
 q=\begin{bmatrix}
 u_{1x}\\
 u_{1y}\\
@@ -528,7 +529,8 @@ u_{2x}\\
 u_{2y}\\
 u_{3x}\\
 u_{3y}\\
-\end{bmatrix}$$
+\end{bmatrix}
+$$
 
 ...such that $\epsilon = Bd$. We'll call $B$ the strain-displacement matrix.
 
@@ -554,7 +556,7 @@ Finally, the last step is to sum the element stiffness matrices into a total sti
 
 ## Solver Execution
 
-There's a lot of math in the last step that would make it appear as if a lot  is going on, but there honestly isn't; the solver needs to take the following steps:
+There's a lot of math in the last step that would make it appear as if a lot is going on, but there honestly isn't; the solver needs to take the following steps:
 
 1. Determine the element stiffness matrix of each element
 2. Compile these element stiffness matrices into a total stiffness matrix
@@ -580,17 +582,20 @@ v & 1 & 0 \\\
 \end{bmatrix}
 $$
 
-$$B=\begin{bmatrix}
+$$
+B=\begin{bmatrix}
 y_{23} & 0 & y_{31} & 0 & y_{12} & 0 \\
 0 & x_{32} & 0 & x_{13} & 0 & x_{21} \\
 x_{32} & y_{23} & x_{13} & y_{31} & x_{21} & y_{12}
-\end{bmatrix}$$
+\end{bmatrix}
+$$
 
 > Where $x_{ij} = (x_i-x_j)$ and $y_{ij} = (y_i-y_j)$ for simplicity
 
 Furthermore, we assume that thickness $t$ will be constant across the entire part. All that's left to do is find the area of a triangle, which is easy enough:
 
-$$A=\frac 12
+$$
+A=\frac 12
 \begin{vmatrix}
 x_1 & y_1 & 0 \\
 x_2 & y_2 & 0 \\
@@ -598,7 +603,7 @@ x_3 & y_3 & 0 \\
 \end{vmatrix}
 $$
 
-Using [nalgebra](https://docs.rs/nalgebra/latest/nalgebra/), we can create a stiffness matrix for each element. 
+Using [nalgebra](https://docs.rs/nalgebra/latest/nalgebra/), we can create a stiffness matrix for each element.
 
 ### Building the Total Stiffness Matrix
 
@@ -608,11 +613,9 @@ Each element stiffness matrix is square. The rows and columns correspond to pair
 
 > Notice how there is a stiffness between every two nodes?
 
-
 The example stiffness matrix above would correspond to the stiffness matrix for an element with nodes 1, 2, and 3 because it defines a stiffness at each of these nodes.
 
 The total stiffness matrix will look similar, just with more nodes. For each element stiffness matrix, we match each row-column node pair from the local stiffness matrix to the total stiffness matrix. This is easier explained by showing the code:
-
 
 ```rust
 for (stiffness_mat, element) in std::iter::zip(element_stiffness_matrices, elements) {
@@ -694,12 +697,12 @@ $$
 \begin{bmatrix}
 f_{1x} \\
 f_{1y} \\
-f_{2x} 
+f_{2x}
 \end{bmatrix} =
 \begin{bmatrix}
 k_{11} & k_{12} & k_{13} & k_{14} & k_{15} & k_{16} \\
 k_{21} & k_{22} & k_{23} & k_{24} & k_{25} & k_{26} \\
-k_{31} & k_{32} & k_{33} & k_{34} & k_{35} & k_{36} 
+k_{31} & k_{32} & k_{33} & k_{34} & k_{35} & k_{36}
 \end{bmatrix}
 \begin{bmatrix}
 u_{1x} \\
@@ -760,9 +763,11 @@ v & 1 & 0 \\\
 \gamma_{xy}
 \end{bmatrix}
 $$
+
 ... and that strain can be represented by
+
 $$
-\epsilon = 
+\epsilon =
 \frac{1}{2A}
 \begin{bmatrix}
 y_{23} & 0 & y_{31} & 0 & y_{12} & 0 \\
