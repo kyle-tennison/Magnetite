@@ -12,14 +12,16 @@ use argmin::{
     },
     solver::conjugategradient::ConjugateGradient,
 };
+use nalgebra_sparse::{CooMatrix, CsrMatrix};
 
 pub const DOF: usize = 2;
 pub const MAX_CG_ITER: u64 = 1e7 as u64;
 pub const TARGET_CG_COST: f64 = 1e-4 as f64;
+const SOLVE_BAR_TOTAL: u64 = 1000;
 
 /// Runs multiplication for Conjugate Gradient Solver
 struct ConjugateGradientOperator<'a> {
-    a: &'a DMatrix<f64>, // TODO: Use a sparse matrix to speed up multiplication times
+    a: &'a CsrMatrix<f64>, // TODO: Use a sparse matrix to speed up multiplication times
 }
 
 impl<'a> Operator for ConjugateGradientOperator<'a> {
@@ -38,13 +40,15 @@ impl<'a> Operator for ConjugateGradientOperator<'a> {
 struct ConjugateGradientObserverBar {
     bar: ProgressBar,
     final_mag: f64,
+    done_solve: bool
 }
 
 impl ConjugateGradientObserverBar {
     fn new() -> ConjugateGradientObserverBar {
         ConjugateGradientObserverBar {
-            bar: ProgressBar::new(1000),
+            bar: ProgressBar::new(SOLVE_BAR_TOTAL),
             final_mag: TARGET_CG_COST.log10().floor(),
+            done_solve: false
         }
     }
 
@@ -71,15 +75,30 @@ where
             Some(c) => c,
             None => return Ok(()), // skip if we can't parse
         };
-        let cost_mag = cost.log10().floor();
-        let progress = (1000. / f64::sqrt(cost_mag - self.final_mag)) as u64;
-        self.bar.set_position(progress);
+        let cost_mag = cost.ln().floor();
+        let mut progress = (SOLVE_BAR_TOTAL as f64 / f64::sqrt(cost_mag - self.final_mag)) as u64;
+
+        if progress > SOLVE_BAR_TOTAL {
+            progress = SOLVE_BAR_TOTAL
+        }
+
+        if progress == SOLVE_BAR_TOTAL {
+            self.done_solve = true;
+            self.bar.set_position(progress);
+        }
+
+        if !self.done_solve{
+            self.bar.set_position(progress);
+        }
 
         Ok(())
     }
 
-    fn observe_final(&mut self, _state: &I) -> Result<(), Error> {
+    fn observe_final(&mut self, state: &I) -> Result<(), Error> {
         self.bar.finish();
+        let iterations = state.get_iter();
+
+        println!("info: finished conjugate gradient approximation in {} iterations", iterations);
         Ok(())
     }
 }
@@ -98,11 +117,30 @@ fn run_conjugate_gradient(
     a: &DMatrix<f64>,
     b: &DVector<f64>,
 ) -> Result<DVector<f64>, MagnetiteError> {
+
+    // Convert a to a sparse matrix
+    println!("info: converting into sparse matrix...");
+    let n = a.nrows();
+    let mut a_sparse_coo: CooMatrix<f64> = CooMatrix::new(n, n);
+
+    for row in 0..n {
+        for col in 0..n{
+            let k = a[(row, col)];
+
+            if k != 0.0 {
+                a_sparse_coo.push(row, col, k)
+            }
+        }
+    }
+    let a_sparse_csr: CsrMatrix<f64> = CsrMatrix::from(&a_sparse_coo);
+    
+    // Run Conjugate Gradient Solver
+    println!("info: running conjugate gradient solver:");
     let b_flat: Vec<f64> = b.iter().map(|f| *f).collect();
     let solver: ConjugateGradient<_, f64> = ConjugateGradient::new(b_flat);
     let initial_guess: Vec<f64> = vec![0.0; b.nrows()];
 
-    let operator = ConjugateGradientOperator { a };
+    let operator = ConjugateGradientOperator { a: &a_sparse_csr };
     let observer = ConjugateGradientObserverBar::new();
 
     // Run solver
@@ -283,7 +321,7 @@ fn build_total_stiffness_matrix(
             }
         }
     }
-    bar.finish_with_message(format!("info: successfully build total stiffness matrix\n"));
+    bar.finish_with_message(format!("info: successfully assembled total stiffness matrix\n"));
 
     total_stiffness_matrix
 }
