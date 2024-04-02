@@ -5,7 +5,7 @@ pub enum MagnetiteError {
     Input(String),
     Mesher(String),
     Solver(String),
-    PostProcessor(String)
+    PostProcessor(String),
 }
 
 impl Display for MagnetiteError {

@@ -21,16 +21,14 @@ mod solver;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-
-    #[arg(short, long, index=1, value_name="FILE")]
+    #[arg(short, long, index = 1, value_name = "FILE")]
     input_file: String,
 
     #[arg(short, long, index=2, value_name="FILE", num_args=0..)]
     geometry_files: Vec<String>,
 
-    #[arg(short, long, default_value="coolwarm")]
+    #[arg(short, long, default_value = "coolwarm")]
     cmap: String,
-
 }
 
 fn main() {
@@ -47,11 +45,10 @@ fn main() {
 fn entry() -> Result<(), MagnetiteError> {
     let args = Args::parse();
 
-
     // Parse input files
     let (mut nodes, mut elements, model_metadata) = mesher::run(
         args.geometry_files.iter().map(|f| f.as_str()).collect(),
-        &args.input_file
+        &args.input_file,
     )?;
 
     // Run simulation

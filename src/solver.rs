@@ -521,13 +521,16 @@ fn compute_stress(
             )
             * displacement_mat;
 
-
         let sign = {
-            if stress[0] + stress[1] < 1.0 { -1 }
-            else { 1 }
+            if stress[0] + stress[1] < 1.0 {
+                -1
+            } else {
+                1
+            }
         };
 
-        element.stress = Some(f64::sqrt(f64::powi(stress[0], 2) + f64::powi(stress[1], 2)) * sign as f64);
+        element.stress =
+            Some(f64::sqrt(f64::powi(stress[0], 2) + f64::powi(stress[1], 2)) * sign as f64);
     }
 }
 

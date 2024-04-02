@@ -1,4 +1,7 @@
-use std::{io::{BufWriter, Write}, process::ExitStatus};
+use std::{
+    io::{BufWriter, Write},
+    process::ExitStatus,
+};
 
 use crate::{
     datatypes::{Element, Node},
@@ -110,7 +113,10 @@ pub fn pyplot(nodes_csv: &str, elements_csv: &str, cmap: &str) -> Result<(), Mag
         .unwrap();
 
     if !res.status.success() {
-        return Err(MagnetiteError::PostProcessor(format!("error: python plotter raised error:\n\n{}", String::from_utf8_lossy(res.stderr.iter().as_slice()))))
+        return Err(MagnetiteError::PostProcessor(format!(
+            "error: python plotter raised error:\n\n{}",
+            String::from_utf8_lossy(res.stderr.iter().as_slice())
+        )));
     }
 
     Ok(())

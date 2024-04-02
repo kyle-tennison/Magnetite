@@ -10,6 +10,7 @@ import numpy as np
 from dataclasses import dataclass
 import matplotlib.colors as mcolors
 
+
 @dataclass
 class Node:
     x: float
