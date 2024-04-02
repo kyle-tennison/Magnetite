@@ -3,7 +3,7 @@ use crate::{
     error::MagnetiteError,
 };
 use indicatif::ProgressBar;
-use nalgebra::{matrix, DMatrix, DVector, SMatrix};
+use nalgebra::{matrix, Cholesky, DMatrix, DVector, SMatrix};
 
 pub const DOF: usize = 2;
 
@@ -15,7 +15,7 @@ pub const DOF: usize = 2;
 ///
 /// # Returns
 /// The area of the element
-fn compute_element_area(element: &Element, nodes: &Vec<Node>) -> f64 {
+pub fn compute_element_area(element: &Element, nodes: &Vec<Node>) -> f64 {
     let v0 = &nodes[element.nodes[0]].vertex;
     let v1 = &nodes[element.nodes[1]].vertex;
     let v2 = &nodes[element.nodes[2]].vertex;
@@ -261,10 +261,25 @@ fn solve(
     // Solve for nodal displacements
     println!("info: solving system...");
     let start = std::time::Instant::now();
-    let displacement_solution = match unknown_matrix.lu().solve(&known_matrix_summed) {
-        Some(sol) => sol,
-        None => return Err(MagnetiteError::Solver(format!("No solution"))),
-    };
+
+    // try to solve with cholesky
+
+    let displacement_solution: DVector<f64>;
+    if let Some(cholesky) = Cholesky::new(unknown_matrix.clone()) {
+        println!("info: solving with cholesky decomposition");
+        displacement_solution = cholesky.solve(&known_matrix_summed);
+    } else {
+        println!("warning: unable to solve with cholesky decomposition. falling back to LU decomposition");
+        displacement_solution = match unknown_matrix.lu().solve(&known_matrix_summed) {
+            Some(s) => s,
+            None => {
+                return Err(MagnetiteError::Solver(
+                    "No solution to system after fallback to LU".to_owned(),
+                ))
+            }
+        }
+    }
+
     let elapsed = (std::time::Instant::now() - start).as_secs_f32();
     println!("info: solved system in {:.3} seconds", elapsed);
 
