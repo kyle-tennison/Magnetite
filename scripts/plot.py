@@ -80,8 +80,17 @@ def main():
                 )
             )
 
+    # determine aspect ratio
+    node_x_range = max(nodes, key=lambda n: n.x).x - min(nodes, key=lambda n: n.x).x
+    node_y_range = max(nodes, key=lambda n: n.y).y - min(nodes, key=lambda n: n.y).y
+
+    if node_x_range / 16 > node_y_range / 9:
+        shape = (2, 1)  # if wider than tall, use rows
+    else:
+        shape = (1, 2)  # otherwise use columns
+
     plt.style.use("seaborn-v0_8")
-    fig, axs = plt.subplots(1, 2)
+    fig, axs = plt.subplots(*shape)
     fig.suptitle("Simulation Results")
 
     solved_plot = axs[0]
