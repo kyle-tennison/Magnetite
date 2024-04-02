@@ -21,7 +21,11 @@ Magnetite is a simple linear-elastic mechanical solver for isotropic 2D models. 
 6. After solving the system, we post-process the system to solve for stresses, then we output the results as a `nodes.csv` and `elements.csv`.
 7. Finally, Magnetite triggers a Python script to plot these elements in [matplotlib](https://matplotlib.org/). 
 
-![A screenshot of a simulation output](media/tensilve-results.png)
+### Example Output
+
+Here's a fun example I did with the LinedIn logo. This mesh is pretty fine, but it only took Magnetite 9.39 seconds to solve on my not-so-special Mackbook Air.
+
+![A screenshot of a simulation output](examples/linedin-logo/output.png)
 
 
 ## Installation and Running
