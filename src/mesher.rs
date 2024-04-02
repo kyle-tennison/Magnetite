@@ -1,12 +1,12 @@
-use std::io::{Read, Write};
-
 use json::JsonValue;
+use std::io::{Read, Write};
 
 use crate::{
     datatypes::{
         BoundaryRegion, BoundaryRule, BoundaryTarget, Element, ModelMetadata, Node, Vertex,
     },
     error::MagnetiteError,
+    solver::compute_element_area,
 };
 
 enum MeshParseState {
@@ -523,6 +523,13 @@ fn compute_mesh(
     Ok(())
 }
 
+/// Ensures that the order of nodes in the element is counter-clockwise
+fn check_ccw(element: &mut Element, nodes: &Vec<Node>) {
+    if compute_element_area(&element, nodes) < 1.0 {
+        element.nodes.reverse();
+    }
+}
+
 /// Parses a .msh file into Nodes and Elements
 ///
 /// # Arguments
@@ -662,10 +669,11 @@ fn parse_mesh(mesh_file: &str) -> Result<(Vec<Node>, Vec<Element>), MagnetiteErr
                     let n1 = metadata[2] - 1;
                     let n2 = metadata[3] - 1;
 
-                    elements.push(Element {
+                    let element = Element {
                         nodes: [n0, n1, n2],
                         stress: None,
-                    })
+                    };
+                    elements.push(element)
                 }
             }
             MeshParseState::Entities => continue,
@@ -676,13 +684,17 @@ fn parse_mesh(mesh_file: &str) -> Result<(Vec<Node>, Vec<Element>), MagnetiteErr
     let mut nodes: Vec<Node> =
         Vec::with_capacity(std::mem::size_of::<Node>() * nodes_unordered.len());
 
-    // we will be over writing all of these null values
     unsafe {
         nodes.set_len(nodes_unordered.len());
     }
 
     for (idx, node) in std::iter::zip(node_indexes, nodes_unordered) {
         nodes[idx] = node;
+    }
+
+    // Enforce ccw ordering on elements
+    for element in &mut elements {
+        check_ccw(element, &nodes);
     }
 
     println!(
