@@ -259,26 +259,13 @@ fn solve(
     }
 
     // Solve for nodal displacements
-    println!("info: solving system...");
+    
+    
     let start = std::time::Instant::now();
-
-    // try to solve with cholesky
-
-    let displacement_solution: DVector<f64>;
-    if let Some(cholesky) = Cholesky::new(unknown_matrix.clone()) {
-        println!("info: solving with cholesky decomposition");
-        displacement_solution = cholesky.solve(&known_matrix_summed);
-    } else {
-        println!("warning: unable to solve with cholesky decomposition. falling back to LU decomposition");
-        displacement_solution = match unknown_matrix.lu().solve(&known_matrix_summed) {
-            Some(s) => s,
-            None => {
-                return Err(MagnetiteError::Solver(
-                    "No solution to system after fallback to LU".to_owned(),
-                ))
-            }
-        }
-    }
+    println!("info: decomposing with cholesky decomposition...");
+    let cholesky = Cholesky::new_unchecked(unknown_matrix);
+    println!("info: solving system...");
+    let displacement_solution = cholesky.solve(&known_matrix_summed);
 
     let elapsed = (std::time::Instant::now() - start).as_secs_f32();
     println!("info: solved system in {:.3} seconds", elapsed);
