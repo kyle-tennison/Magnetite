@@ -21,7 +21,7 @@ const SOLVE_BAR_TOTAL: u64 = 1000;
 
 /// Runs multiplication for Conjugate Gradient Solver
 struct ConjugateGradientOperator<'a> {
-    a: &'a CsrMatrix<f64>, // TODO: Use a sparse matrix to speed up multiplication times
+    a: &'a CsrMatrix<f64>,
 }
 
 impl<'a> Operator for ConjugateGradientOperator<'a> {
