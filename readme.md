@@ -27,7 +27,7 @@ Magnetite is a simple linear-elastic mechanical solver for isotropic 2D models. 
 
 Here's a fun example I did with the LinedIn logo. This mesh is pretty fine, but it only took Magnetite 0.286 seconds to solve on my not-so-special MacBook Air.
 
-![A screenshot of a simulation output](examples/linedin-logo/output.png)
+![A screenshot of a simulation output](examples/linkedin-logo/output.png)
 
 ## Installation and Running
 
